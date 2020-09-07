@@ -1,0 +1,15 @@
+*
+
+!.gitignore
+
+!CHANGES
+!LICENSE
+!PRIVACY
+!README
+
+!mobile
+!mobile/src
+!mobile/src/main
+!mobile/src/main/**
+
+mobile/.gitignore

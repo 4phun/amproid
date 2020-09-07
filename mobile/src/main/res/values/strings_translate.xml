@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ This file is part of Amproid
+  ~
+  ~ Copyright (c) 2019. Peter Papp
+  ~
+  ~ Please visit https://github.com/4phun/Amproid for details
+  ~
+  ~ Amproid is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Amproid is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Amproid. If not, see http://www.gnu.org/licenses/
+  -->
+
+
+<resources>
+
+    <!-- general -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="unknown">Unknown</string>
+    <string name="initializing">Initializing</string>
+
+
+    <!-- accounts -->
+    <string name="account_add_button_label">Add</string>
+    <string name="account_add_dialog_title">Add account</string>
+    <string name="account_manage_button_label">Manage</string>
+    <string name="account_select_button_label">Select</string>
+    <string name="account_select_label">Select account</string>
+    <string name="psw_input_label">Password</string>
+    <string name="url_input_label">Ampache server URL</string>
+    <string name="user_input_label">User name</string>
+
+    <!-- login / logout -->
+    <string name="login_handshake">Handshake with server</string>
+    <string name="login_delay">Delaying next login attempt…</string>
+    <string name="quitting">Quitting…</string>
+    <string name="still_bound">The Amproid service cannot quit because other apps are still bound to it. Playback has been paused for your convenience.</string>
+
+    <!-- track properties -->
+    <string name="title">Title</string>
+    <string name="artist">Artist</string>
+    <string name="album">Album</string>
+    <string name="art">Art</string>
+
+    <!-- actions -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="prev">Previous</string>
+    <string name="next">Next</string>
+    <string name="search">Search</string>
+
+    <!-- menu and related -->
+    <string name="accounts">Accounts</string>
+    <string name="about">About</string>
+    <string name="about_title">Amproid v%s</string>
+    <string name="about_text">Ampache client for Android\n\nCopyright © 2019-%d Peter Papp\n\nhttps://github.com/4phun/Amproid"</string>
+
+    <!-- equalizer -->
+    <string name="eq">EQ</string>
+    <string name="equalizer">Equalizer</string>
+    <string name="loudness">Loudness</string>
+
+    <!-- options -->
+    <string name="options">Options</string>
+    <string name="use_presence_forever">Use persistent notification</string>
+    <string name="hide_dot_playlists">Hide playlists whose name starts with a dot</string>
+
+    <!-- browsing & searching-->
+    <string name="item_root_desc">Home</string>
+    <string name="item_random_desc">Shuffle</string>
+    <string name="item_playlists_desc">Playlists</string>
+    <string name="item_browse_desc">Browse</string>
+    <string name="tracks">Tracks</string>
+    <string name="album_suffix">(album)</string>
+    <string name="getting_playlist_tracks">Getting tracks in playlist…</string>
+    <string name="getting_album_tracks">Getting tracks in album…</string>
+    <string name="getting_search_results">Searching…</string>
+    <string name="up_one_level_songs">Back to albums</string>
+
+    <!-- persistent notification -->
+    <string name="persistence_notification">Tap here to open Amproid.</string>
+    <string name="persistence_notification_info">Amproid\'s persistent notification helps launching the media service when you\'re using Android Auto.</string>
+
+    <!-- error messages -->
+    <string name="error_account_type_mismatch">Account type mismatch</string>
+    <string name="error_blank_token">Blank login token</string>
+    <string name="error_defective_albums">%d album(s) had invalid data</string>
+    <string name="error_defective_artists">%d artist(s) had invalid data</string>
+    <string name="error_defective_playlists">%d playlist(s) had invalid data</string>
+    <string name="error_defective_tracks">%d track(s) had invalid data</string>
+    <string name="error_error">Error</string>
+    <string name="error_invalid_credentials">Invalid login credentials</string>
+    <string name="error_invalid_server_response">Received an invalid response from the Ampache server</string>
+    <string name="error_invalid_server_url">Invalid Ampache server URL</string>
+    <string name="error_invalid_user_input">Invalid data entered</string>
+    <string name="error_login_failed">Failed to log in </string>
+    <string name="error_no_account_selection">No account selected</string>
+    <string name="error_no_network">Network connection lost</string>
+    <string name="error_network_wait">Waiting for network connection…</string>
+    <string name="error_set_data_source_error">Cannot set data source</string>
+    <string name="error_prepare_error">Cannot prepare playback</string>
+    <string name="error_play_error">Cannot start playback</string>
+    <string name="error_pause_error">Cannot pause playback</string>
+    <string name="error_stop_error">Cannot stop playback</string>
+    <string name="error_searchinput_insufficient">Search expression too short. Minimum 3 characters needed.</string>
+    <string name="error_searchresults_empty">No matches were found</string>
+    <string name="error_searchresults_irrelevant">No relevant matches were found</string>
+    <string name="error_tracks_empty">Received no tracks</string>
+    <string name="error_unsupported_api">Ampache API version %d not supported, minimum %d needed</string>
+    <string name="media_error_io_str">File or network related operation errors</string>
+    <string name="media_error_malformed_str">Bitstream is not conforming to the related coding standard or file spec</string>
+    <string name="media_error_not_valid_for_progressive_playback_str">The video is streamed and its container is not valid for progressive playback</string>
+    <string name="media_error_server_died_str">Media server died</string>
+    <string name="media_error_timed_out_str">Some operation takes too long to complete, usually more than 3–5 seconds</string>
+    <string name="media_error_unsupported_str">Bitstream is conforming to the related coding standard or file spec, but the media framework does not support the feature</string>
+    <string name="media_error_system_str">Low-level media system error</string>
+    <string name="media_error_unknown_str">Unspecified media player error</string>
+
+    <!-- license -->
+    <string name="license"><![CDATA[
+Licensing
+\n\n
+Amproid is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+\n\n
+Amproid is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+\n\n
+You should have received a copy of the GNU General Public License
+along with Amproid. If not, see http://www.gnu.org/licenses/
+    ]]></string>
+
+    <!-- clear text traffic warning -->
+    <string name="clear_text_warning"><![CDATA[
+Warning!
+\n\n
+Starting with version Pie, Android forbids transmission of clear text by default.
+This means your Ampache server must support secure \"https://\" connections.
+\n\n
+To facilitate home usage and testing, Amproid allows clear text connections to the local IP addresses of 192.168.0.30 through 192.168.0.39.
+    ]]></string>
+
+</resources>

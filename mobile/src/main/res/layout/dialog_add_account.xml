@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ This file is part of Amproid
+  ~
+  ~ Copyright (c) 2019. Peter Papp
+  ~
+  ~ Please visit https://github.com/4phun/Amproid for details
+  ~
+  ~ Amproid is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Amproid is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Amproid. If not, see http://www.gnu.org/licenses/
+  -->
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:layout_marginRight="@dimen/distance_from_edge"
+        android:text="@string/url_input_label" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginRight="@dimen/distance_from_edge">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/url_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/url_input_hint"
+            android:inputType="textUri"
+            android:paddingTop="@dimen/zero" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:layout_marginRight="@dimen/distance_from_edge"
+        android:text="@string/user_input_label" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginRight="@dimen/distance_from_edge">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/user_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/zero" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:layout_marginRight="@dimen/distance_from_edge"
+        android:text="@string/psw_input_label" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginRight="@dimen/distance_from_edge">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/psw_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:paddingTop="@dimen/zero" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

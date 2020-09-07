@@ -1,0 +1,27 @@
+Amproid
+
+Amproid is an Ampache client for Android
+See CHANGES file for version information
+
+Copyright (c) 2019-2020 Peter Papp
+
+
+Homepage:
+https://github.com/4phun/Amproid
+
+To install:
+https://play.google.com/store/apps/details?id=com.pppphun.amproid
+
+
+Amproid is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Amproid is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Amproid. If not, see http://www.gnu.org/licenses/
