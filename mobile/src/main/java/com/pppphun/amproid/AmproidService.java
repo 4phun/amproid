@@ -951,6 +951,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             // initialize handler of incoming IPC messages
             registerReceiver(amproidBroacastReceiver, new IntentFilter("android.media.AUDIO_BECOMING_NOISY"));
             LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(AmproidService.this);
+            localBroadcastManager.registerReceiver(amproidBroacastReceiver, new IntentFilter(getString(R.string.auto_exited_broadcast_action)));
             localBroadcastManager.registerReceiver(amproidBroacastReceiver, new IntentFilter(getString(R.string.account_selected_broadcast_action)));
             localBroadcastManager.registerReceiver(amproidBroacastReceiver, new IntentFilter(getString(R.string.async_finished_broadcast_action)));
             localBroadcastManager.registerReceiver(amproidBroacastReceiver, new IntentFilter(getString(R.string.async_no_network_broadcast_action)));
@@ -1348,6 +1349,11 @@ public class AmproidService extends MediaBrowserServiceCompat
             if ((intent.getAction() != null) && intent.getAction().equals("android.media.AUDIO_BECOMING_NOISY")) {
                 mediaSessionCallback.onPause();
                 return;
+            }
+
+            // broadcast from PresenceForever - Android Auto exited
+            if ((intent.getAction() != null) && intent.getAction().equals(getString(R.string.auto_exited_broadcast_action))) {
+                mediaSessionCallback.onStop();
             }
 
             // user selected account to use

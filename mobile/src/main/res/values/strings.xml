@@ -31,6 +31,7 @@
 
     <!-- stop service / quit -->
     <string name="quit_broadcast_action">com.pppphun.amproid.QUIT</string>
+    <string name="auto_exited_broadcast_action">com.pppphun.amproid.AUTO_EXITED</string>
 
     <!-- options -->
     <string name="options_preferences">options</string>

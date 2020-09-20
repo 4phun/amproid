@@ -1,3 +1,6 @@
+1.10 - 2020-09-20
+    Quit automatically when Android Auto exists if persistent notification is on
+
 1.9 - 2020-09-05
     Fade if track is tagged "Live", "Medley", or "Nonstop"
     Bugfixes:

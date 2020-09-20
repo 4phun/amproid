@@ -54,6 +54,7 @@ public class PresenceForever extends Service
         super.onCreate();
 
         registerReceiver(autoBroadcastReceiver, new IntentFilter("android.app.action.ENTER_CAR_MODE"));
+        registerReceiver(autoBroadcastReceiver, new IntentFilter("android.app.action.EXIT_CAR_MODE"));
         notificationManager = NotificationManagerCompat.from(this);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -96,9 +97,15 @@ public class PresenceForever extends Service
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            Intent intentAmproid = new Intent(PresenceForever.this, AmproidService.class);
-            intentAmproid.putExtra("PresenceForever", true);
-            startService(intentAmproid);
+            if ((intent.getAction() != null) && intent.getAction().equals("android.app.action.ENTER_CAR_MODE")) {
+                Intent intentAmproid = new Intent(PresenceForever.this, AmproidService.class);
+                intentAmproid.putExtra("PresenceForever", true);
+                startService(intentAmproid);
+                return;
+            }
+            if ((intent.getAction() != null) && intent.getAction().equals("android.app.action.EXIT_CAR_MODE")) {
+                Amproid.sendLocalBroadcast(R.string.auto_exited_broadcast_action);
+            }
         }
     }
 }
