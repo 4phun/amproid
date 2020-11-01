@@ -56,8 +56,9 @@ class AmpacheAPICaller
     private static final int    MIN_API_VERSION    = 400001;
     private static final String API_PATH           = "/server/xml.server.php";
 
-    private URL    baseUrl;
-    private String errorMessage = "";
+    private URL     baseUrl;
+    private String  errorMessage     = "";
+    private boolean loginShouldRetry = true;
 
 
     AmpacheAPICaller(String url)
@@ -158,6 +159,12 @@ class AmpacheAPICaller
     private void setErrorMessage(int stringResource)
     {
         errorMessage = Amproid.getAppContext().getString(stringResource);
+    }
+
+
+    boolean isLoginShouldRetry()
+    {
+        return loginShouldRetry;
     }
 
 
@@ -341,7 +348,8 @@ class AmpacheAPICaller
             return "";
         }
 
-        errorMessage = "";
+        errorMessage     = "";
+        loginShouldRetry = true;
 
         // calculate Ampache handshake hash
         String timeStr      = String.valueOf(System.currentTimeMillis() / 1000);
@@ -384,12 +392,14 @@ class AmpacheAPICaller
         }
 
         // check results
-        if (results.isEmpty() || !results.containsKey("auth") || !results.containsKey("api")) {
-            setErrorMessage(R.string.error_invalid_server_response);
+        if (results.containsKey("error")) {
+            errorMessage     = results.get("error");
+            loginShouldRetry = false;
             return "";
         }
-        if (results.containsKey("error")) {
-            errorMessage = results.get("error");
+
+        if (results.isEmpty() || !results.containsKey("auth") || !results.containsKey("api")) {
+            setErrorMessage(R.string.error_invalid_server_response);
             return "";
         }
 
@@ -399,6 +409,7 @@ class AmpacheAPICaller
             if (errorMessage.contains("%")) {
                 errorMessage = String.format(errorMessage, apiVersion, MIN_API_VERSION);
             }
+            loginShouldRetry = false;
             return "";
         }
 

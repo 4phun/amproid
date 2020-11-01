@@ -80,6 +80,7 @@ import java.util.Vector;
 
 import static android.accounts.AccountManager.KEY_ACCOUNT_TYPE;
 import static android.accounts.AccountManager.KEY_AUTHTOKEN;
+import static android.accounts.AccountManager.KEY_ERROR_CODE;
 import static android.accounts.AccountManager.KEY_ERROR_MESSAGE;
 import static android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ALBUM;
 import static android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ART;
@@ -396,7 +397,8 @@ public class AmproidService extends MediaBrowserServiceCompat
             if (playMode != PLAY_MODE_UNKNOWN) {
                 String query = intent.getExtras().getString("query");
                 mediaSessionCallback.onPlayFromSearch(query == null ? "" : query, intent.getExtras());
-            } else {
+            }
+            else {
                 searchParameters = intent.getExtras();
             }
         }
@@ -578,7 +580,8 @@ public class AmproidService extends MediaBrowserServiceCompat
             // playlist index is set to zero when user selects a playlist to play (in onPlayFromMediaId), or it might be a positive number if starting with saved play mode
             if ((playlistIndex >= 0) && (playlistIndex < tracks.size())) {
                 trackIndex = playlistIndex;
-            } else {
+            }
+            else {
                 // this could happen if playlist is modified on Ampache server between Amproid restarts
                 playlistIndex = trackIndex;
             }
@@ -732,7 +735,8 @@ public class AmproidService extends MediaBrowserServiceCompat
         // more feedback
         if (playMode == PLAY_MODE_PLAYLIST) {
             fakeTrackMessage(R.string.getting_playlist_tracks, "");
-        } else if (playMode == PLAY_MODE_ALBUM) {
+        }
+        else if (playMode == PLAY_MODE_ALBUM) {
             fakeTrackMessage(R.string.getting_album_tracks, "");
         }
 
@@ -765,14 +769,20 @@ public class AmproidService extends MediaBrowserServiceCompat
 
     void getNewAuthToken(@NotNull String errorMessage)
     {
+        getNewAuthToken(errorMessage, true);
+    }
+
+
+    void getNewAuthToken(@NotNull String errorMessage, boolean retry)
+    {
         // exhausted our chances
         if (authAttempts >= MAX_AUTH_ATTEMPTS) {
             fakeTrackMessage(R.string.error_login_failed, errorMessage.isEmpty() ? selectedAccount.name : errorMessage);
             return;
         }
 
-        if ((authAttempts >= 1) || !errorMessage.isEmpty()) {
-            fakeTrackMessage(getString(R.string.login_delay), errorMessage.isEmpty() ? selectedAccount.name : errorMessage);
+        if ((authAttempts >= 1) || !errorMessage.isEmpty() || !retry) {
+            fakeTrackMessage(getString(retry ? R.string.login_delay : R.string.error_login_failed), errorMessage.isEmpty() ? selectedAccount.name : errorMessage);
         }
 
         // invalidate cached token
@@ -780,6 +790,10 @@ public class AmproidService extends MediaBrowserServiceCompat
         authToken = "";
 
         // get new token with delay
+        if (!retry) {
+            return;
+        }
+
         mainHandler.postDelayed(delayedGetAuthToken, retryDelay(authAttempts));
 
         authAttempts++;
@@ -845,9 +859,11 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         if ((playMode == PLAY_MODE_BROWSE) && browseId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
-        } else if ((playMode == PLAY_MODE_PLAYLIST) && playlistId.isEmpty()) {
+        }
+        else if ((playMode == PLAY_MODE_PLAYLIST) && playlistId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
-        } else if ((playMode == PLAY_MODE_ALBUM) && albumId.isEmpty()) {
+        }
+        else if ((playMode == PLAY_MODE_ALBUM) && albumId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
         }
 
@@ -868,13 +884,18 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
 
         if (isPlaying) {
-            // update duration first
-            metadataBuilder.putLong(METADATA_KEY_DURATION, mediaPlayer.getDuration());
-            mediaSession.setMetadata(metadataBuilder.build());
+            try {
+                // update duration first
+                metadataBuilder.putLong(METADATA_KEY_DURATION, mediaPlayer.getDuration());
+                mediaSession.setMetadata(metadataBuilder.build());
 
-            // set playing state
-            stateBuilder.setState(STATE_PLAYING, mediaPlayer.getCurrentPosition(), 1);
-            mediaSession.setPlaybackState(stateBuilder.build());
+                // set playing state
+                stateBuilder.setState(STATE_PLAYING, mediaPlayer.getCurrentPosition(), 1);
+                mediaSession.setPlaybackState(stateBuilder.build());
+            }
+            catch (Exception e) {
+                // nothing we can do about it
+            }
         }
     }
 
@@ -1349,7 +1370,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 Intent intent = (Intent) bundle.get(AccountManager.KEY_INTENT);
 
                 // authenticator wants to open the "add account" dialog
-                // noinspection ConstantConditions - never null because it was checked with "containsKey"
+                // noinspection ConstantConditions
                 if (intent.getBooleanExtra("AmproidAuthenticatorActivity", false)) {
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
@@ -1366,19 +1387,21 @@ public class AmproidService extends MediaBrowserServiceCompat
                 }
 
                 // check for error
+                boolean retry = true;
+                if (bundle.containsKey(KEY_ERROR_CODE)) {
+                    retry = bundle.getString(KEY_ERROR_CODE, "").compareTo("0001") == 0;
+                }
                 if (bundle.containsKey(KEY_ERROR_MESSAGE)) {
-                    // noinspection ConstantConditions - never null because it was checked with "containsKey"
-                    getNewAuthToken(bundle.getString(KEY_ERROR_MESSAGE));
+                    getNewAuthToken(bundle.getString(KEY_ERROR_MESSAGE, ""), retry);
                     return;
                 }
 
                 // got the token
-                authToken = bundle.getString(KEY_AUTHTOKEN);
+                authToken = bundle.getString(KEY_AUTHTOKEN, "");
 
                 // check if its not empty - could be cached from previous error
-                // noinspection ConstantConditions - never null because it was checked with "containsKey"
                 if (authToken.isEmpty()) {
-                    getNewAuthToken(getString(R.string.error_blank_token));
+                    getNewAuthToken(getString(R.string.error_blank_token), retry);
                     return;
                 }
 
@@ -1683,7 +1706,8 @@ public class AmproidService extends MediaBrowserServiceCompat
                     if (autoStart) {
                         // start play immediately
                         start();
-                    } else {
+                    }
+                    else {
                         // clear connecting/buffering state
                         stateBuilder.setState(STATE_STOPPED, mediaPlayer.getCurrentPosition(), 1);
                         mediaSession.setPlaybackState(stateBuilder.build());
@@ -1780,7 +1804,8 @@ public class AmproidService extends MediaBrowserServiceCompat
                     fadeValue     = 0.0f;
                     fadeDirection = FADE_DIRECTION_IN;
                 }
-            } else {
+            }
+            else {
                 synchronized (this) {
                     fadeValue     = 1.0f;
                     fadeDirection = FADE_DIRECTION_NONE;
@@ -1882,7 +1907,8 @@ public class AmproidService extends MediaBrowserServiceCompat
                 if (fadeDirection == FADE_DIRECTION_NONE) {
                     // must be done immediately to avoid changes in sound after playback has already started
                     setEffects();
-                } else {
+                }
+                else {
                     // must be done after a delay, otherwise fade-in will have a short but very much audible burst before sound is silenced
                     new Timer().schedule(new TimerTask()
                     {

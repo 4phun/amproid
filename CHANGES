@@ -1,3 +1,6 @@
+1.11 - 2020-11-01
+    Better handling of login errors
+
 1.10 - 2020-10-31
     Quit automatically when Android Auto exists if persistent notification is on
     Clear cache on quit in an effort to prevent Android Auto from constantly changing album art

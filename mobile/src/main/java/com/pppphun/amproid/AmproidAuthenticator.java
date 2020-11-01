@@ -120,7 +120,12 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
 
         // add error message to return value if there is one
         if (!ampacheAPICaller.getErrorMessage().isEmpty()) {
-            returnValue.putString(KEY_ERROR_CODE, "0001");
+            if (ampacheAPICaller.isLoginShouldRetry()) {
+                returnValue.putString(KEY_ERROR_CODE, "0001");
+            }
+            else {
+                returnValue.putString(KEY_ERROR_CODE, "0002");
+            }
             returnValue.putString(KEY_ERROR_MESSAGE, ampacheAPICaller.getErrorMessage());
         }
 
