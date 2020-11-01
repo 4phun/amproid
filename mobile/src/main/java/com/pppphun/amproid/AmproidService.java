@@ -67,6 +67,7 @@ import androidx.media.session.MediaButtonReceiver;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,6 +101,7 @@ import static com.pppphun.amproid.Amproid.bundleGetString;
 import static com.pppphun.amproid.Amproid.sendLocalBroadcast;
 
 
+@SuppressWarnings("FieldMayBeFinal")
 public class AmproidService extends MediaBrowserServiceCompat
 {
     // miscellaneous package-wide constants
@@ -125,6 +127,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     // attempts
     private final static int MAX_AUTH_ATTEMPTS = 50;
     private final static int MAX_QUIT_ATTEMPTS = 5;
+
     // for effects
     Equalizer.Settings equalizerSettings   = null;
     int                loudnessGainSetting = LOUDNESS_GAIN_DEFAULT;
@@ -170,11 +173,14 @@ public class AmproidService extends MediaBrowserServiceCompat
     private boolean quitting         = false;
 
     // async tasks
-    @SuppressWarnings ("rawtypes")
+    @SuppressWarnings("rawtypes")
     private Vector<AsyncTask> asyncTasks = new Vector<>();
 
     // delayed tasks
-    private Handler  mainHandler                                        = new Handler(Looper.getMainLooper());
+
+    private Handler mainHandler              = new Handler(Looper.getMainLooper());
+    private int     delayedStopSecsRemaining = 0;
+
     private Runnable delayedGetAuthToken                                = new Runnable()
     {
         @Override
@@ -184,11 +190,21 @@ public class AmproidService extends MediaBrowserServiceCompat
             AccountManager.get(AmproidService.this).getAuthToken(selectedAccount, "", null, true, new AmproidService.AmproidAccountManagerCallback(), null);
         }
     };
+    private Runnable delayedMediaSessionUpdateDurationPositionIfPlaying = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            mediaSessionUpdateDurationPositionIfPlaying();
+        }
+    };
     private Runnable delayedQuit                                        = new Runnable()
     {
         @Override
         public void run()
         {
+            mainHandler.removeCallbacks(delayedStop);
+
             if (hasBoundClients) {
                 // this closes the main activity if needed
                 sendLocalBroadcast(R.string.quit_broadcast_action);
@@ -229,12 +245,20 @@ public class AmproidService extends MediaBrowserServiceCompat
             stopSelf();
         }
     };
-    private Runnable delayedMediaSessionUpdateDurationPositionIfPlaying = new Runnable()
+    private Runnable delayedStop                                        = new Runnable()
     {
         @Override
         public void run()
         {
-            mediaSessionUpdateDurationPositionIfPlaying();
+            delayedStopSecsRemaining--;
+            fakeTrackMessage(String.format(getString(R.string.aa_quit_time), delayedStopSecsRemaining), getString(R.string.aa_quit_desc));
+
+            if (delayedStopSecsRemaining <= 0) {
+                mediaSessionCallback.onStop();
+                return;
+            }
+
+            mainHandler.postDelayed(delayedStop, 1000);
         }
     };
 
@@ -372,14 +396,13 @@ public class AmproidService extends MediaBrowserServiceCompat
             if (playMode != PLAY_MODE_UNKNOWN) {
                 String query = intent.getExtras().getString("query");
                 mediaSessionCallback.onPlayFromSearch(query == null ? "" : query, intent.getExtras());
-            }
-            else {
+            } else {
                 searchParameters = intent.getExtras();
             }
         }
 
         // if started by Android Auto: don't start playback right away, pause if already playing
-        if ((intent.getExtras() != null) && intent.getExtras().containsKey("PresenceForever") && intent.getExtras().getBoolean("PresenceForever")) {
+        if ((intent != null) && (intent.getExtras() != null) && intent.getExtras().containsKey("PresenceForever") && intent.getExtras().getBoolean("PresenceForever")) {
             mediaSessionCallback.onPause();
         }
 
@@ -433,7 +456,37 @@ public class AmproidService extends MediaBrowserServiceCompat
             notificationManager.cancelAll();
         }
 
+        // trying to stop Android Auto from constantly switching the album art
+        // see https://support.google.com/androidauto/thread/3960822?hl=en
+        delDirOnExit(getCacheDir());
+
         super.onDestroy();
+    }
+
+
+    private void delDirOnExit(File dir)
+    {
+        if ((dir == null) || !dir.exists()) {
+            return;
+        }
+
+        File[] children = dir.listFiles();
+
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isDirectory()) {
+                delDirOnExit(child);
+            }
+
+            try {
+                child.deleteOnExit();
+            }
+            catch (Exception e) {
+                // nothing we can do about it
+            }
+        }
     }
 
 
@@ -460,7 +513,7 @@ public class AmproidService extends MediaBrowserServiceCompat
 
 
     // cancel async task
-    @SuppressWarnings ("rawtypes")
+    @SuppressWarnings("rawtypes")
     void asyncCancel(AsyncTask task)
     {
         task.cancel(false);
@@ -477,18 +530,18 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
-    @SuppressWarnings ("rawtypes")
+    @SuppressWarnings("rawtypes")
     void asyncHousekeeping()
     {
         Vector<AsyncTask> toBeRemoved = new Vector<>();
 
-        for(AsyncTask task : asyncTasks) {
+        for (AsyncTask task : asyncTasks) {
             if (task.getStatus() == AsyncTask.Status.FINISHED) {
                 toBeRemoved.add(task);
             }
         }
 
-        for(AsyncTask task : toBeRemoved) {
+        for (AsyncTask task : toBeRemoved) {
             asyncTasks.remove(task);
         }
     }
@@ -525,8 +578,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             // playlist index is set to zero when user selects a playlist to play (in onPlayFromMediaId), or it might be a positive number if starting with saved play mode
             if ((playlistIndex >= 0) && (playlistIndex < tracks.size())) {
                 trackIndex = playlistIndex;
-            }
-            else {
+            } else {
                 // this could happen if playlist is modified on Ampache server between Amproid restarts
                 playlistIndex = trackIndex;
             }
@@ -680,8 +732,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         // more feedback
         if (playMode == PLAY_MODE_PLAYLIST) {
             fakeTrackMessage(R.string.getting_playlist_tracks, "");
-        }
-        else if (playMode == PLAY_MODE_ALBUM) {
+        } else if (playMode == PLAY_MODE_ALBUM) {
             fakeTrackMessage(R.string.getting_album_tracks, "");
         }
 
@@ -794,11 +845,9 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         if ((playMode == PLAY_MODE_BROWSE) && browseId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
-        }
-        else if ((playMode == PLAY_MODE_PLAYLIST) && playlistId.isEmpty()) {
+        } else if ((playMode == PLAY_MODE_PLAYLIST) && playlistId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
-        }
-        else if ((playMode == PLAY_MODE_ALBUM) && albumId.isEmpty()) {
+        } else if ((playMode == PLAY_MODE_ALBUM) && albumId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
         }
 
@@ -836,7 +885,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
-    @SuppressLint ("ApplySharedPref")
+    @SuppressLint("ApplySharedPref")
     private void savePlayMode()
     {
         SharedPreferences        preferences       = getApplicationContext().getSharedPreferences(getApplicationContext().getString(R.string.playmode_preferences), MODE_PRIVATE);
@@ -856,7 +905,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     {
         Vector<HashMap<String, String>> returnValue = new Vector<>();
 
-        for(HashMap<String, String> item : source) {
+        for (HashMap<String, String> item : source) {
             if (item.containsKey(key)) {
                 String mapValue = item.get(key);
 
@@ -871,7 +920,7 @@ public class AmproidService extends MediaBrowserServiceCompat
 
 
     // starts authentication with Ampache server - actual authentication involves asynchronous task, but this makes sure things are ready for that before starting it
-    @SuppressLint ("ApplySharedPref")
+    @SuppressLint("ApplySharedPref")
     private void startAuth()
     {
         // accounts are managed by Android's built-in Accounts settings
@@ -879,8 +928,8 @@ public class AmproidService extends MediaBrowserServiceCompat
         // the goal here is to find an account to use
 
         // get all Amproid accounts
-        final AccountManager accountManager = AccountManager.get(this);
-        Account[]            accounts       = accountManager.getAccountsByType(getString(R.string.account_type));
+        AccountManager accountManager = AccountManager.get(this);
+        Account[]      accounts       = accountManager.getAccountsByType(getString(R.string.account_type));
 
         // no account exist - user must create at least one
         if (accounts.length == 0) {
@@ -914,7 +963,7 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         // we have to loop through our accounts to find the last used one
         selectedAccount = null;
-        for(Account account : accounts) {
+        for (Account account : accounts) {
             if (account.name.compareTo(selectedAccountName) == 0) {
                 selectedAccount = account;
                 break;
@@ -934,7 +983,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     // this is just a simple helper to open the authenticator activity
     private void startAuthenticatorActivity()
     {
-        final Intent intent = new Intent(this, AmproidAuthenticatorActivity.class);
+        Intent intent = new Intent(this, AmproidAuthenticatorActivity.class);
         intent.putExtra(KEY_ACCOUNT_TYPE, getString(R.string.account_type));
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
@@ -944,7 +993,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     // called from onCreate to finish initializations
     class OnCreateDeferred implements Runnable
     {
-        @SuppressLint ("ApplySharedPref")
+        @SuppressLint("ApplySharedPref")
         @Override
         public void run()
         {
@@ -1079,6 +1128,8 @@ public class AmproidService extends MediaBrowserServiceCompat
             if (!haveAudioFocus) {
                 return;
             }
+
+            mainHandler.removeCallbacks(delayedStop);
 
             if (mediaPlayer != null) {
                 pausedByUser = false;
@@ -1341,7 +1392,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     // IPC receiver
     private final class AmproidBroacastReceiver extends BroadcastReceiver
     {
-        @SuppressLint ("ApplySharedPref")
+        @SuppressLint("ApplySharedPref")
         @Override
         public void onReceive(Context context, Intent intent)
         {
@@ -1353,7 +1404,8 @@ public class AmproidService extends MediaBrowserServiceCompat
 
             // broadcast from PresenceForever - Android Auto exited
             if ((intent.getAction() != null) && intent.getAction().equals(getString(R.string.auto_exited_broadcast_action))) {
-                mediaSessionCallback.onStop();
+                delayedStopSecsRemaining = 30;
+                mainHandler.postDelayed(delayedStop, 1000);
             }
 
             // user selected account to use
@@ -1467,11 +1519,11 @@ public class AmproidService extends MediaBrowserServiceCompat
                 Equalizer.Settings equalizerSettings = mediaPlayer.equalizer.getProperties();
 
                 int[] frequencies = new int[equalizerSettings.numBands];
-                for(short i = 0; i < equalizerSettings.numBands; i++) {
+                for (short i = 0; i < equalizerSettings.numBands; i++) {
                     frequencies[i] = mediaPlayer.equalizer.getCenterFreq(i);
                 }
 
-                final Intent eqIntent = new Intent();
+                Intent eqIntent = new Intent();
                 eqIntent.putExtra(getString(R.string.eq_broadcast_key_settings), equalizerSettings.toString());
                 eqIntent.putExtra(getString(R.string.eq_broadcast_key_min), mediaPlayer.equalizer.getBandLevelRange()[0]);
                 eqIntent.putExtra(getString(R.string.eq_broadcast_key_max), mediaPlayer.equalizer.getBandLevelRange()[1]);
@@ -1522,7 +1574,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 if (((playMode != PLAY_MODE_ALBUM) && (playMode != PLAY_MODE_PLAYLIST)) || (playlistTracks.size() < 1)) {
                     return;
                 }
-                final Intent playlistIntent = new Intent();
+                Intent playlistIntent = new Intent();
                 playlistIntent.putExtra(getString(R.string.playlist_broadcast_key_list), playlistTracks);
                 sendLocalBroadcast(R.string.playlist_values_broadcast_action, playlistIntent);
             }
@@ -1533,7 +1585,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                     return;
                 }
 
-                final Bundle extras = intent.getExtras();
+                Bundle extras = intent.getExtras();
                 if (extras == null) {
                     return;
                 }
@@ -1631,8 +1683,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                     if (autoStart) {
                         // start play immediately
                         start();
-                    }
-                    else {
+                    } else {
                         // clear connecting/buffering state
                         stateBuilder.setState(STATE_STOPPED, mediaPlayer.getCurrentPosition(), 1);
                         mediaSession.setPlaybackState(stateBuilder.build());
@@ -1729,8 +1780,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                     fadeValue     = 0.0f;
                     fadeDirection = FADE_DIRECTION_IN;
                 }
-            }
-            else {
+            } else {
                 synchronized (this) {
                     fadeValue     = 1.0f;
                     fadeDirection = FADE_DIRECTION_NONE;
@@ -1832,8 +1882,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 if (fadeDirection == FADE_DIRECTION_NONE) {
                     // must be done immediately to avoid changes in sound after playback has already started
                     setEffects();
-                }
-                else {
+                } else {
                     // must be done after a delay, otherwise fade-in will have a short but very much audible burst before sound is silenced
                     new Timer().schedule(new TimerTask()
                     {
@@ -1993,7 +2042,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 short minLevel = equalizer.getBandLevelRange()[0];
                 short maxLevel = equalizer.getBandLevelRange()[1];
 
-                for(int i = 0; i < equalizerSettings.numBands; i++) {
+                for (int i = 0; i < equalizerSettings.numBands; i++) {
                     short level = equalizerSettings.bandLevels[i];
 
                     if (level < minLevel) {

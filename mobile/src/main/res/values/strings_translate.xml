@@ -92,6 +92,8 @@
     <!-- persistent notification -->
     <string name="persistence_notification">Tap here to open Amproid.</string>
     <string name="persistence_notification_info">Amproid\'s persistent notification helps launching the media service when you\'re using Android Auto.</string>
+    <string name="aa_quit_time">Quitting in %d seconds</string>
+    <string name="aa_quit_desc">Press play to cancel</string>
 
     <!-- error messages -->
     <string name="error_account_type_mismatch">Account type mismatch</string>
@@ -119,6 +121,7 @@
     <string name="error_searchresults_irrelevant">No relevant matches were found</string>
     <string name="error_tracks_empty">Received no tracks</string>
     <string name="error_unsupported_api">Ampache API version %d not supported, minimum %d needed</string>
+    <string name="error_invalid_api">Ampache API version %s is invalid</string>
     <string name="media_error_io_str">File or network related operation errors</string>
     <string name="media_error_malformed_str">Bitstream is not conforming to the related coding standard or file spec</string>
     <string name="media_error_not_valid_for_progressive_playback_str">The video is streamed and its container is not valid for progressive playback</string>

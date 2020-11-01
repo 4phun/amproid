@@ -46,22 +46,15 @@ import static com.pppphun.amproid.Amproid.bundleGetString;
 
 class AmpacheAPICaller
 {
-    public enum GetTracksIdType
-    {
-        GET_TRACKS_ID_TYPE_NONE, GET_TRACKS_ID_TYPE_SONG, GET_TRACKS_ID_TYPE_ALBUM, GET_TRACKS_ID_TYPE_PLAYLIST
-    }
-
-
     static final int SEARCH_RESULTS_SONGS         = 1;
     static final int SEARCH_RESULTS_ALBUMS        = 2;
     static final int SEARCH_RESULTS_ARTIST_ALBUMS = 3;
 
-    private static final int SEARCH_MAX_SONGS   = 100;
-    private static final int SEARCH_MAX_ALBUMS  = 36;
-    private static final int SEARCH_MAX_ARTISTS = 10;
-
-    private static final int    MIN_API_VERSION = 400001;
-    private static final String API_PATH        = "/server/xml.server.php";
+    private static final int    SEARCH_MAX_SONGS   = 100;
+    private static final int    SEARCH_MAX_ALBUMS  = 36;
+    private static final int    SEARCH_MAX_ARTISTS = 10;
+    private static final int    MIN_API_VERSION    = 400001;
+    private static final String API_PATH           = "/server/xml.server.php";
 
     private URL    baseUrl;
     private String errorMessage = "";
@@ -179,6 +172,8 @@ class AmpacheAPICaller
             return new Vector<>();
         }
 
+        int apiVersion = pingForVersion();
+
         errorMessage = "";
 
         // build query
@@ -187,6 +182,9 @@ class AmpacheAPICaller
         queryString.addNameValue("auth", token);
         queryString.addNameValue("limit", "none");
         queryString.addNameValue("type", "playlist");
+        if (apiVersion >= 5000000) {
+            queryString.addNameValue("include", "0");
+        }
 
         // create URL
         URL callUrl;
@@ -227,23 +225,19 @@ class AmpacheAPICaller
         // count = 0 means no limit
         if (count == 0) {
             queryString.addNameValue("limit", "none");
-        }
-        else {
+        } else {
             queryString.addNameValue("limit", String.valueOf(count));
         }
 
         // empty id means random
         if ((id == null) || id.isEmpty() || (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_NONE)) {
             queryString.addNameValue("action", "playlist_generate");
-        }
-        else {
+        } else {
             if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_ALBUM) {
                 queryString.addNameValue("action", "album_songs");
-            }
-            else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_PLAYLIST) {
+            } else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_PLAYLIST) {
                 queryString.addNameValue("action", "playlist_songs");
-            }
-            else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_SONG) {
+            } else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_SONG) {
                 queryString.addNameValue("action", "song");
             }
             queryString.addNameValue("filter", id);
@@ -279,7 +273,7 @@ class AmpacheAPICaller
         // transform to java style objects
         String        localErrorMessage = "";
         Vector<Track> returnValue       = new Vector<>();
-        for(HashMap<String, String> result : results) {
+        for (HashMap<String, String> result : results) {
             URL url;
             try {
                 url = new URL(result.get("url"));
@@ -311,7 +305,7 @@ class AmpacheAPICaller
                     String[] tags = tagsString.split(",");
 
                     boolean liveFound = false;
-                    for(String tag : tags) {
+                    for (String tag : tags) {
                         if ((tag.compareToIgnoreCase("Live") == 0) || (tag.compareToIgnoreCase("Medley") == 0) || (tag.compareToIgnoreCase("Nonstop") == 0)) {
                             liveFound = true;
                             break;
@@ -399,11 +393,7 @@ class AmpacheAPICaller
             return "";
         }
 
-        String apiVersionString = results.get("api");
-        if (apiVersionString == null) {
-            apiVersionString = "0";
-        }
-        int apiVersion = Integer.parseInt(apiVersionString);
+        int apiVersion = apiVersionFromString(results.get("api"));
         if (apiVersion < MIN_API_VERSION) {
             setErrorMessage(R.string.error_unsupported_api);
             if (errorMessage.contains("%")) {
@@ -416,7 +406,75 @@ class AmpacheAPICaller
     }
 
 
-    @SuppressLint ("UseSparseArrays")
+    private int apiVersionFromString(String apiVersionString)
+    {
+        if (apiVersionString == null) {
+            apiVersionString = "0";
+        }
+
+        int apiVersion = 0;
+
+        try {
+            // old version format: integer
+            apiVersion = Integer.parseInt(apiVersionString);
+        }
+        catch (Exception e) {
+            // new version format introduced at 5.0.0: string major.minor.patch
+            String[] versionParts = apiVersionString.split("\\.");
+            if (versionParts.length == 3) {
+                int majorApiVersion = 0;
+                int minorApiVersion = 0;
+                int patchApiVersion = 0;
+
+                try {
+                    majorApiVersion = Integer.parseInt(versionParts[0]);
+                    minorApiVersion = Integer.parseInt(versionParts[1]);
+                    patchApiVersion = Integer.parseInt(versionParts[2]);
+                }
+                catch (Exception ee) {
+                    // nothing to do here
+                }
+
+                apiVersion = majorApiVersion * 1000000 + minorApiVersion * 1000 + patchApiVersion;
+            }
+
+            // string version must be minimum 5.0.0
+            if (apiVersion < 5000000) {
+                apiVersion = 0;
+            }
+        }
+
+        return apiVersion;
+    }
+
+
+    private int pingForVersion()
+    {
+        if (baseUrl == null) {
+            return 0;
+        }
+
+        QueryStringBuilder queryString = new QueryStringBuilder();
+        queryString.addNameValue("action", "ping");
+
+        URL callUrl;
+        try {
+            callUrl = new URL(baseUrl.toString() + API_PATH + "?" + queryString.getQueryString());
+        }
+        catch (Exception e) {
+            return 0;
+        }
+
+        Vector<String> tagsNeeded = new Vector<>();
+        tagsNeeded.add("version");
+
+        HashMap<String, String> results = blockingTransaction(callUrl, tagsNeeded);
+
+        return apiVersionFromString(results.get("version"));
+    }
+
+
+    @SuppressLint("UseSparseArrays")
     HashMap<Integer, Vector<HashMap<String, String>>> search(String token, Bundle searchParameters)
     {
         if (baseUrl == null) {
@@ -490,7 +548,7 @@ class AmpacheAPICaller
 
         Vector<HashMap<String, String>> artist_albums = new Vector<>();
 
-        for(HashMap<String, String> foundArtist : artists) {
+        for (HashMap<String, String> foundArtist : artists) {
             if (!foundArtist.containsKey("id")) {
                 continue;
             }
@@ -618,11 +676,9 @@ class AmpacheAPICaller
             while (xmlState != XmlPullParser.END_DOCUMENT) {
                 if (xmlState == XmlPullParser.START_TAG) {
                     currentElement = xmlPullParser.getName();
-                }
-                else if (xmlState == XmlPullParser.END_TAG) {
+                } else if (xmlState == XmlPullParser.END_TAG) {
                     currentElement = "";
-                }
-                else if (xmlState == XmlPullParser.TEXT) {
+                } else if (xmlState == XmlPullParser.TEXT) {
                     if (tags.contains(currentElement)) {
                         results.put(currentElement, xmlPullParser.getText());
                     }
@@ -671,7 +727,6 @@ class AmpacheAPICaller
             while (xmlState != XmlPullParser.END_DOCUMENT) {
                 if (xmlState == XmlPullParser.START_TAG) {
                     currentElement = xmlPullParser.getName();
-
                     if (currentElement.compareTo(repeatingTag) == 0) {
                         subResults = new HashMap<>();
                         results.add(subResults);
@@ -685,18 +740,15 @@ class AmpacheAPICaller
                             i++;
                         }
                     }
-                }
-                else if (xmlState == XmlPullParser.END_TAG) {
+                } else if (xmlState == XmlPullParser.END_TAG) {
                     currentElement = "";
-                }
-                else if (xmlState == XmlPullParser.TEXT) {
+                } else if (xmlState == XmlPullParser.TEXT) {
                     if (subTags.contains(currentElement) && (subResults != null)) {
                         if ((currentElement.compareTo("tag") == 0) && (subResults.containsKey(currentElement))) {
                             String tags = subResults.get(currentElement);
                             tags = tags + "," + xmlPullParser.getText();
                             subResults.put(currentElement, tags);
-                        }
-                        else {
+                        } else {
                             subResults.put(currentElement, xmlPullParser.getText());
                         }
                     }
@@ -726,7 +778,7 @@ class AmpacheAPICaller
         byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
 
         StringBuilder stringBuilder = new StringBuilder();
-        for(byte b : hash) {
+        for (byte b : hash) {
             stringBuilder.append(Integer.toHexString((b & 0xFF) | 0x100).substring(1, 3));
         }
 
@@ -734,9 +786,15 @@ class AmpacheAPICaller
     }
 
 
+    public enum GetTracksIdType
+    {
+        GET_TRACKS_ID_TYPE_NONE, GET_TRACKS_ID_TYPE_SONG, GET_TRACKS_ID_TYPE_ALBUM, GET_TRACKS_ID_TYPE_PLAYLIST
+    }
+
+
     private static final class QueryStringBuilder
     {
-        private ArrayList<String> queryString = new ArrayList<>();
+        private final ArrayList<String> queryString = new ArrayList<>();
 
 
         void addNameValue(String name, String value)
@@ -748,7 +806,7 @@ class AmpacheAPICaller
         String getQueryString()
         {
             String returnValue = "";
-            for(String part : queryString) {
+            for (String part : queryString) {
                 if (!returnValue.isEmpty()) {
                     returnValue = returnValue.concat("&");
                 }

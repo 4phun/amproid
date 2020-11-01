@@ -1,5 +1,7 @@
-1.10 - 2020-09-20
+1.10 - 2020-10-31
     Quit automatically when Android Auto exists if persistent notification is on
+    Clear cache on quit in an effort to prevent Android Auto from constantly changing album art
+    Preparations for the highly anticipated Ampache version 5.0.0
 
 1.9 - 2020-09-05
     Fade if track is tagged "Live", "Medley", or "Nonstop"
