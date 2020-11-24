@@ -21,7 +21,6 @@
 
 package com.pppphun.amproid;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -61,10 +60,22 @@ public class PresenceForever extends Service
             NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
             notificationChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_SECRET);
             notificationChannel.setSound(null, null);
+            notificationChannel.setImportance(NotificationManager.IMPORTANCE_DEFAULT);
             notificationManager.createNotificationChannel(notificationChannel);
         }
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID).setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, AmproidMainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT)).setContentText(getString(R.string.persistence_notification)).setContentTitle(getString(R.string.app_name)).setSmallIcon(R.drawable.ic_launcher).setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher)).setOngoing(true).setPriority(Notification.PRIORITY_HIGH).setSound(null).setVisibility(NotificationCompat.VISIBILITY_SECRET);
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, AmproidMainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
+                .setContentText(getString(R.string.persistence_notification))
+                .setContentTitle(getString(R.string.app_name))
+                .setSmallIcon(R.drawable.ic_launcher).setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher))
+                .setOngoing(true)
+                .setSound(null)
+                .setVisibility(NotificationCompat.VISIBILITY_SECRET);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            notificationBuilder.setChannelId(NOTIFICATION_CHANNEL_ID);
+        }
 
         startForeground(NOTIFICATION_ID, notificationBuilder.build());
     }

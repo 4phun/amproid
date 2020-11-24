@@ -41,11 +41,11 @@ import static com.pppphun.amproid.AmproidService.PREFIX_ALBUM;
 
 final class AsyncGetAlbums extends AsyncTask<Void, Void, Vector<HashMap<String, String>>>
 {
-    private String authToken;
-    private String url;
-    private String ampacheId;
+    private final String authToken;
+    private final String url;
+    private final String ampacheId;
 
-    private MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
 
     private String errorMessage = "";
 
@@ -118,7 +118,7 @@ final class AsyncGetAlbums extends AsyncTask<Void, Void, Vector<HashMap<String, 
 
         // add all resulting albums
         int defective = 0;
-        for(HashMap<String, String> album : albums) {
+        for (HashMap<String, String> album : albums) {
             // just to be on the safe side
             if (!album.containsKey("id") || !album.containsKey("name")) {
                 defective++;

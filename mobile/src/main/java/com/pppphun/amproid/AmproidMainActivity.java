@@ -68,6 +68,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -118,6 +119,8 @@ public class AmproidMainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
@@ -189,7 +192,7 @@ public class AmproidMainActivity extends AppCompatActivity
                 );
         // @formatter:on
 
-        for(int buttonId : new int[] { R.id.playButton, R.id.pauseButton, R.id.prevButton, R.id.nextButton, R.id.searchButton, R.id.stopButton }) {
+        for (int buttonId : new int[]{R.id.playButton, R.id.pauseButton, R.id.prevButton, R.id.nextButton, R.id.searchButton, R.id.stopButton}) {
             ImageButton button = findViewById(buttonId);
             button.setBackgroundColor(Color.TRANSPARENT);
             button.setMinimumWidth(buttonMinWidth);
@@ -303,7 +306,7 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
-    @SuppressLint ("InflateParams")
+    @SuppressLint("InflateParams")
     public void menuAbout(MenuItem menuItem)
     {
         // get and format strings
@@ -360,7 +363,7 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
-    @SuppressLint ("InflateParams")
+    @SuppressLint("InflateParams")
     public void menuOptions(MenuItem menuItem)
     {
         final SharedPreferences preferences = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
@@ -382,7 +385,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
         builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
         {
-            @SuppressLint ("ApplySharedPref")
+            @SuppressLint("ApplySharedPref")
             @Override
             public void onClick(DialogInterface dialog, int which)
             {
@@ -485,7 +488,7 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
-    @SuppressLint ("InflateParams")
+    @SuppressLint("InflateParams")
     private final class ConnectionCallback extends MediaBrowserCompat.ConnectionCallback
     {
         @Override
@@ -739,7 +742,7 @@ public class AmproidMainActivity extends AppCompatActivity
             findViewById(R.id.loading).setVisibility(View.GONE);
 
             AdapterItem[] items = new AdapterItem[children.size()];
-            for(int i = 0; i < children.size(); i++) {
+            for (int i = 0; i < children.size(); i++) {
                 String title = getString(R.string.unknown);
                 try {
                     title = Objects.requireNonNull(children.get(i).getDescription().getTitle()).toString();
@@ -775,7 +778,7 @@ public class AmproidMainActivity extends AppCompatActivity
             findViewById(R.id.loading).setVisibility(View.GONE);
 
             AdapterItem[] adapterItems = new AdapterItem[items.size()];
-            for(int i = 0; i < items.size(); i++) {
+            for (int i = 0; i < items.size(); i++) {
                 String title = getString(R.string.unknown);
                 try {
                     title = Objects.requireNonNull(items.get(i).getDescription().getTitle()).toString();
@@ -833,7 +836,7 @@ public class AmproidMainActivity extends AppCompatActivity
             topBottomPadding = Math.round(getResources().getDimension(R.dimen.media_item_padding_top_bottom));
             borderWidth      = Math.round(getResources().getDimension(R.dimen.media_item_border_width));
 
-            TypedArray array = getTheme().obtainStyledAttributes(new int[] { android.R.attr.colorBackground, android.R.attr.textColorPrimary, });
+            TypedArray array = getTheme().obtainStyledAttributes(new int[]{android.R.attr.colorBackground, android.R.attr.textColorPrimary,});
             backgroundColor = array.getColor(0, 0x000000);
             textColor       = array.getColor(1, 0xFFFFFF);
 
@@ -862,7 +865,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
     public class MediaItemsAdapter extends RecyclerView.Adapter<MediaItemsAdapter.MediaItemViewHolder>
     {
-        private AdapterItem[] items;
+        private final AdapterItem[] items;
 
 
         MediaItemsAdapter(AdapterItem[] items)
@@ -885,9 +888,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
             TextView title = new TextView(parent.getContext());
             title.setId(mediaUIValuesCache.MEDIA_ITEM_TITLE_ID);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                title.setTextAppearance(R.style.TextAppearance_AppCompat_Medium);
-            }
+            title.setTextAppearance(R.style.TextAppearance_AppCompat_Medium);
             title.setLayoutParams(new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
             title.setMaxWidth((int) Math.round(0.85 * mediaUIValuesCache.screenWidth));
             row.addView(title);
@@ -901,9 +902,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
             TextView enter = new TextView(parent.getContext());
             enter.setId(mediaUIValuesCache.MEDIA_ITEM_ENTER_ID);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                title.setTextAppearance(R.style.TextAppearance_AppCompat_Medium);
-            }
+            title.setTextAppearance(R.style.TextAppearance_AppCompat_Medium);
             enter.setLayoutParams(new LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT));
             enter.setPadding(Math.round(getResources().getDimension(R.dimen.distance_between)), 0, 0, 0);
             enter.setText(">>");
@@ -1005,7 +1004,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
 
         @Override
-        @SuppressLint ("InflateParams")
+        @SuppressLint("InflateParams")
         public void onReceive(Context context, Intent intent)
         {
             // service quits or screen is turned off
@@ -1043,7 +1042,7 @@ public class AmproidMainActivity extends AppCompatActivity
                 }
                 catch (Exception e) {
                     frequencies = new int[equalizerSettings.numBands];
-                    for(short i = 0; i < equalizerSettings.numBands; i++) {
+                    for (short i = 0; i < equalizerSettings.numBands; i++) {
                         frequencies[i] = 0;
                     }
                 }
@@ -1069,7 +1068,6 @@ public class AmproidMainActivity extends AppCompatActivity
                 // set loudness gain
                 final SeekBar loudness = view.findViewById(R.id.loudnessGain);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // older Android versions always start from zero
                     loudness.setMin(0);
                 }
                 loudness.setProgress(loudnessGain);
@@ -1078,7 +1076,7 @@ public class AmproidMainActivity extends AppCompatActivity
                 final LinearLayout mainLayout = view.findViewById(R.id.eq_layout);
 
                 // add bands to dialog's main layout
-                for(short i = 0; i < equalizerSettings.numBands; i++) {
+                for (short i = 0; i < equalizerSettings.numBands; i++) {
                     // parameters for band's layout
                     LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 
@@ -1108,9 +1106,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
                     // frequency
                     TextView freq = new TextView(AmproidMainActivity.this);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        freq.setTextAppearance(R.style.TextAppearance_AppCompat_Small);
-                    }
+                    freq.setTextAppearance(R.style.TextAppearance_AppCompat_Small);
                     freq.setGravity(Gravity.END);
                     freq.setLayoutParams(new LinearLayout.LayoutParams(Math.round(getResources().getDimension(R.dimen.eq_freq_size)), WRAP_CONTENT));
                     if (frequencies != null) {
@@ -1122,7 +1118,6 @@ public class AmproidMainActivity extends AppCompatActivity
                     level.setId(1000 + i);
                     level.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, 1));
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        // older Android versions always start from zero, so the values have to be transposed for the UI
                         level.setMin(0);
                     }
                     level.setMax(Math.abs(minLevel) + maxLevel);
@@ -1149,7 +1144,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
                         // get levels from user's input
                         short[] levels = new short[eqNumBands];
-                        for(int i = 0; i < eqNumBands; i++) {
+                        for (int i = 0; i < eqNumBands; i++) {
                             SeekBar level = mainLayout.findViewById(1000 + i);
                             levels[i] = (level == null ? 0 : (short) (level.getProgress() - Math.abs(minLevel)));
                         }
@@ -1219,7 +1214,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
                 // create adapter that holds playlist's tracks
                 ArrayAdapter<String> playlistAdapter = new ArrayAdapter<>(AmproidMainActivity.this, R.layout.dialog_playlist_item);
-                for(int i = 0; i < playlist.size(); i++) {
+                for (int i = 0; i < playlist.size(); i++) {
                     playlistAdapter.add(String.format(Locale.US, "%d. %s", i + 1, playlist.get(i).getTitle()));
                 }
                 playlistView.setAdapter(playlistAdapter);

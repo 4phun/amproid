@@ -27,7 +27,6 @@ import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
 import android.annotation.SuppressLint;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -39,6 +38,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.audiofx.Equalizer;
@@ -147,6 +147,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     private AmproidMediaPlayer mediaPlayer = null;
 
     // to handle audio focus
+    private AudioFocusRequest                       audioFocusRequest        = null;
     private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = null;
 
     // IPC with this project's activities
@@ -240,9 +241,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             // stop the media browser service
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-            }
+            stopForeground(STOP_FOREGROUND_REMOVE);
             stopSelf();
         }
     };
@@ -441,11 +440,18 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
 
         // abandon audio focus
-        if (audioFocusChangeListener != null) {
-            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            // noinspection ConstantConditions - AUDIO_SERVICE exists for sure
-            audioManager.abandonAudioFocus(audioFocusChangeListener);
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (audioFocusRequest != null) {
+                audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            }
         }
+        else {
+            if (audioFocusChangeListener != null) {
+                audioManager.abandonAudioFocus(audioFocusChangeListener);
+            }
+        }
+
 
         // release media session
         if (mediaSession != null) {
@@ -1035,9 +1041,11 @@ public class AmproidService extends MediaBrowserServiceCompat
 
             // notification manager will be used to update notification with track data
             notificationManager = NotificationManagerCompat.from(AmproidService.this);
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
                 notificationChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                notificationChannel.setImportance(NotificationManager.IMPORTANCE_HIGH);
                 notificationChannel.setSound(notifyUri, new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
                 notificationManager.createNotificationChannel(notificationChannel);
             }
@@ -1054,10 +1062,13 @@ public class AmproidService extends MediaBrowserServiceCompat
                     .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.amproid_playing))
                     .setOngoing(true)
                     .setOnlyAlertOnce(true)
-                    .setPriority(Notification.PRIORITY_HIGH)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setSound(notifyUri)
                     .setStyle(new androidx.media.app.NotificationCompat.MediaStyle().setMediaSession(mediaSession.getSessionToken()).setShowCancelButton(true).setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(AmproidService.this, ACTION_STOP)).setShowActionsInCompactView(0, 1));
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                notificationBuilder.setChannelId(NOTIFICATION_CHANNEL_ID);
+            }
 
             // put this media browser service in the foreground
             startForeground(NOTIFICATION_ID, notificationBuilder.build());
@@ -1099,9 +1110,34 @@ public class AmproidService extends MediaBrowserServiceCompat
                     }
                 }
             };
+
+
             AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            // noinspection ConstantConditions - AUDIO_SERVICE exists for sure
-            haveAudioFocus = audioManager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+            if (audioManager != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    AudioAttributes playbackAttributes = new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build();
+                    audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                            .setAudioAttributes(playbackAttributes)
+                            .setAcceptsDelayedFocusGain(true)
+                            .setWillPauseWhenDucked(true)
+                            .setOnAudioFocusChangeListener(audioFocusChangeListener, mainHandler)
+                            .build();
+
+                    final Object lock  = new Object();
+                    int          focus = audioManager.requestAudioFocus(audioFocusRequest);
+
+                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                    synchronized (lock) {
+                        haveAudioFocus = (focus == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                    }
+                }
+                else {
+                    haveAudioFocus = audioManager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+                }
+            }
 
             // migrate legacy preferences
             SharedPreferences legacyPreferences = getSharedPreferences(getString(R.string.persistence_preferences), Context.MODE_PRIVATE);
@@ -1111,15 +1147,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 optionsPreferencesEditor.putBoolean(getString(R.string.persistence_use_preference), legacyPreferences.getBoolean(getString(R.string.persistence_use_preference), true));
                 optionsPreferencesEditor.commit();
 
-                boolean deleted = false;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    deleted = deleteSharedPreferences(getString(R.string.persistence_preferences));
-                }
-                if (!deleted) {
-                    SharedPreferences.Editor legacyPreferencesEditor = legacyPreferences.edit();
-                    legacyPreferencesEditor.remove(getString(R.string.persistence_use_preference));
-                    legacyPreferencesEditor.commit();
-                }
+                deleteSharedPreferences(getString(R.string.persistence_preferences));
             }
 
             // start authentication with Ampache server (on the main thread)
@@ -1143,8 +1171,30 @@ public class AmproidService extends MediaBrowserServiceCompat
         {
             if (!haveAudioFocus) {
                 AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-                // noinspection ConstantConditions - AUDIO_SERVICE exists for sure
-                haveAudioFocus = audioManager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+                if (audioManager != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        AudioAttributes playbackAttributes = new AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .build();
+                        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                                .setAudioAttributes(playbackAttributes)
+                                .setAcceptsDelayedFocusGain(true)
+                                .setWillPauseWhenDucked(true)
+                                .setOnAudioFocusChangeListener(audioFocusChangeListener, mainHandler)
+                                .build();
+
+                        final Object lock  = new Object();
+                        int          focus = audioManager.requestAudioFocus(audioFocusRequest);
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (lock) {
+                            haveAudioFocus = (focus == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                        }
+                    }
+                    else {
+                        haveAudioFocus = audioManager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+                    }
+                }
             }
             if (!haveAudioFocus) {
                 return;
@@ -1370,7 +1420,6 @@ public class AmproidService extends MediaBrowserServiceCompat
                 Intent intent = (Intent) bundle.get(AccountManager.KEY_INTENT);
 
                 // authenticator wants to open the "add account" dialog
-                // noinspection ConstantConditions
                 if (intent.getBooleanExtra("AmproidAuthenticatorActivity", false)) {
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);

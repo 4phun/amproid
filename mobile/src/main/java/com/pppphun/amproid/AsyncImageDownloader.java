@@ -33,7 +33,7 @@ import java.net.URL;
 
 final class AsyncImageDownloader extends AsyncTask<Void, Void, Bitmap>
 {
-    private URL url;
+    private final URL url;
 
 
     AsyncImageDownloader(URL url)

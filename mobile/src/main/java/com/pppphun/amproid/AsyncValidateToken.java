@@ -31,8 +31,8 @@ import static com.pppphun.amproid.Amproid.ConnectionStatus.CONNECTION_UNKNOWN;
 
 class AsyncValidateToken extends AsyncTask<Void, Void, Boolean>
 {
-    private String authToken;
-    private String url;
+    private final String authToken;
+    private final String url;
 
     private String errorMessage = "";
 

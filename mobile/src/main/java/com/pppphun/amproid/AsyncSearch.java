@@ -24,7 +24,6 @@ package com.pppphun.amproid;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v4.media.MediaBrowserCompat;
@@ -46,11 +45,11 @@ import static com.pppphun.amproid.AmproidService.PREFIX_SONG;
 
 class AsyncSearch extends AsyncTask<Void, Void, HashMap<Integer, Vector<HashMap<String, String>>>>
 {
-    private String authToken;
-    private String url;
-    private Bundle searchParameters;
+    private final String authToken;
+    private final String url;
+    private final Bundle searchParameters;
 
-    private MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
 
     private String errorMessage = "";
 
@@ -74,7 +73,7 @@ class AsyncSearch extends AsyncTask<Void, Void, HashMap<Integer, Vector<HashMap<
     }
 
 
-    @SuppressLint ("UseSparseArrays")
+    @SuppressLint("UseSparseArrays")
     @Override
     protected HashMap<Integer, Vector<HashMap<String, String>>> doInBackground(Void... voids)
     {
@@ -135,15 +134,15 @@ class AsyncSearch extends AsyncTask<Void, Void, HashMap<Integer, Vector<HashMap<
             Vector<String> addedIds = new Vector<>();
 
             // add all found items
-            int[] processOrder = new int[] { AmpacheAPICaller.SEARCH_RESULTS_SONGS, AmpacheAPICaller.SEARCH_RESULTS_ALBUMS, AmpacheAPICaller.SEARCH_RESULTS_ARTIST_ALBUMS };
+            int[] processOrder = new int[]{AmpacheAPICaller.SEARCH_RESULTS_SONGS, AmpacheAPICaller.SEARCH_RESULTS_ALBUMS, AmpacheAPICaller.SEARCH_RESULTS_ARTIST_ALBUMS};
             int   defective    = 0;
-            for(int type : processOrder) {
+            for (int type : processOrder) {
                 Vector<HashMap<String, String>> items = found.get(type);
                 if (items == null) {
                     items = new Vector<>();
                 }
 
-                for(HashMap<String, String> item : items) {
+                for (HashMap<String, String> item : items) {
                     // it's not the same for songs and albums
                     if (item.containsKey("name") && !item.containsKey("title")) {
                         item.put("title", item.get("name"));
@@ -174,17 +173,14 @@ class AsyncSearch extends AsyncTask<Void, Void, HashMap<Integer, Vector<HashMap<
             }
 
             // sort them nice 'n' neat
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                results.sort(new Comparator<MediaBrowserCompat.MediaItem>()
+            results.sort(new Comparator<MediaBrowserCompat.MediaItem>()
+            {
+                @Override
+                public int compare(MediaBrowserCompat.MediaItem o1, MediaBrowserCompat.MediaItem o2)
                 {
-                    @Override
-                    public int compare(MediaBrowserCompat.MediaItem o1, MediaBrowserCompat.MediaItem o2)
-                    {
-                        // noinspection ConstantConditions - just put it in there few lines up
-                        return o1.getDescription().getTitle().toString().compareToIgnoreCase(o2.getDescription().getTitle().toString());
-                    }
-                });
-            }
+                    return o1.getDescription().getTitle().toString().compareToIgnoreCase(o2.getDescription().getTitle().toString());
+                }
+            });
 
             // add root a.k.a. link to "home" as the first element
             results.add(0, new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(Amproid.getAppContext().getString(R.string.item_root_id)).setTitle(Amproid.getAppContext().getString(R.string.item_root_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));

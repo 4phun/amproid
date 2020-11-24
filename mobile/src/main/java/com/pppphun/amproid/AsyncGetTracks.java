@@ -46,13 +46,13 @@ import static com.pppphun.amproid.AmproidService.PREFIX_SONG;
 
 public class AsyncGetTracks extends AsyncTask<Void, Void, Vector<Track>>
 {
-    private String authToken;
-    private String url;
-    private int    playMode;
-    private String ampacheId;
-    private String artistAmpacheId;
+    private final String authToken;
+    private final String url;
+    private final int    playMode;
+    private final String ampacheId;
+    private final String artistAmpacheId;
 
-    private MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
 
     private String errorMessage = "";
 
@@ -197,7 +197,7 @@ public class AsyncGetTracks extends AsyncTask<Void, Void, Vector<Track>>
 
             // add all resulting tracks
             int defective = 0;
-            for(Track track : tracks) {
+            for (Track track : tracks) {
                 // just to be on the safe side
                 if (track.isInvalid()) {
                     defective++;

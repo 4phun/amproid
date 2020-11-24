@@ -41,10 +41,10 @@ import static com.pppphun.amproid.AmproidService.PREFIX_ARTIST;
 
 public class AsyncGetArtists extends AsyncTask<Void, Void, Vector<HashMap<String, String>>>
 {
-    private String authToken;
-    private String url;
+    private final String authToken;
+    private final String url;
 
-    private MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
 
     private String errorMessage = "";
 
@@ -116,7 +116,7 @@ public class AsyncGetArtists extends AsyncTask<Void, Void, Vector<HashMap<String
 
         // add all resulting artists
         int defective = 0;
-        for(HashMap<String, String> artist : artists) {
+        for (HashMap<String, String> artist : artists) {
             // just to be on the safe side
             if (!artist.containsKey("id") || !artist.containsKey("name")) {
                 defective++;

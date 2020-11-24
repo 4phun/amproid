@@ -33,8 +33,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -49,7 +52,7 @@ import static android.accounts.AccountManager.KEY_ACCOUNT_TYPE;
 
 public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
 {
-    @SuppressWarnings ("rawtypes")
+    @SuppressWarnings("rawtypes")
     private ArrayAdapter accountItems = null;   // accounts in account selector drop-down
 
 
@@ -70,9 +73,7 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
         setContentView(R.layout.activity_authenticator);
 
         // clear text warning only on Pie and up
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
-            findViewById(R.id.clear_text_warning).setVisibility(View.GONE);
-        }
+        findViewById(R.id.clear_text_warning).setVisibility(View.GONE);
 
         // handle add and edit buttons
         findViewById(R.id.add_account_button).setOnClickListener(new View.OnClickListener()
@@ -97,7 +98,7 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
         // handle "select account" button
         findViewById(R.id.select_account_button).setOnClickListener(new View.OnClickListener()
         {
-            @SuppressLint ("ApplySharedPref")
+            @SuppressLint("ApplySharedPref")
             @Override
             public void onClick(View v)
             {
@@ -186,7 +187,7 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
         // add existing accounts to adapter created above
         int index         = 0;
         int selectedIndex = -1;
-        for(Account account : accounts) {
+        for (Account account : accounts) {
             // noinspection unchecked - OK java why on Earth adding a String to ArrayAdapter<String> is unchecked?
             accountItems.add(account.name);
 
@@ -205,7 +206,7 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
 
 
     // add and edit account dialog
-    @SuppressLint ("InflateParams")
+    @SuppressLint("InflateParams")
     private void addAccountDialog()
     {
         // create dialog instance
@@ -221,6 +222,66 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
         final TextInputEditText userEditor = view.findViewById(R.id.user_input);
         final TextInputEditText pswEditor  = view.findViewById(R.id.psw_input);
 
+        // demo server
+        userEditor.addTextChangedListener(new TextWatcher()
+        {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {
+
+            }
+
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {
+                String url  = urlEditor.getText() == null ? "" : urlEditor.getText().toString();
+                String user = userEditor.getText() == null ? "" : userEditor.getText().toString();
+                String psw  = pswEditor.getText() == null ? "" : pswEditor.getText().toString();
+
+                if (url.isEmpty() && (user.compareTo("demo") == 0) && (psw.compareTo("demodemo") == 0)) {
+                    urlEditor.setText("https://develop.ampache.dev");
+                }
+            }
+
+
+            @Override
+            public void afterTextChanged(Editable s)
+            {
+
+            }
+        });
+        pswEditor.addTextChangedListener(new TextWatcher()
+        {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {
+
+            }
+
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {
+                String url  = urlEditor.getText() == null ? "" : urlEditor.getText().toString();
+                String user = userEditor.getText() == null ? "" : userEditor.getText().toString();
+                String psw  = pswEditor.getText() == null ? "" : pswEditor.getText().toString();
+
+                if (url.isEmpty() && (user.compareTo("demo") == 0) && (psw.compareTo("demodemo") == 0)) {
+                    urlEditor.setText("https://develop.ampache.dev");
+                }
+            }
+
+
+            @Override
+            public void afterTextChanged(Editable s)
+            {
+
+            }
+        });
+
         // this is going to be needed multiple times
         final AccountManager accountManager = AccountManager.get(this);
 
@@ -234,6 +295,10 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
                 String url  = urlEditor.getText() == null ? "" : urlEditor.getText().toString();
                 String user = userEditor.getText() == null ? "" : userEditor.getText().toString();
                 String psw  = pswEditor.getText() == null ? "" : pswEditor.getText().toString();
+
+                if (url.isEmpty() && (user.compareTo("demo") == 0) && (psw.compareTo("demodemo") == 0)) {
+                    url = "https://develop.ampache.dev";
+                }
                 if (url.isEmpty() || user.isEmpty() || psw.isEmpty()) {
                     Toast.makeText(getApplicationContext(), R.string.error_invalid_user_input, Toast.LENGTH_SHORT).show();
                     return;
@@ -270,12 +335,16 @@ public class AmproidAuthenticatorActivity extends AccountAuthenticatorActivity
                 accountManager.addAccountExplicitly(account, psw, extra);
 
                 // add new account to the account selector drop-down
-                // noinspection unchecked - OK java why on Earth adding a String to ArrayAdapter<String> is unchecked?
+                // noinspection unchecked
                 accountItems.add(accountName);
 
                 // make it the selection
                 Spinner accountSelector = findViewById(R.id.account_selector);
                 accountSelector.setSelection(accountItems.getCount() - 1);
+
+                // select it
+                Button selectButton = findViewById(R.id.select_account_button);
+                selectButton.performClick();
             }
         });
 

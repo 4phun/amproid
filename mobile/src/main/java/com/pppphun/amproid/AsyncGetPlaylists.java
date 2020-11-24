@@ -43,10 +43,10 @@ import static com.pppphun.amproid.AmproidService.PREFIX_PLAYLIST;
 
 public class AsyncGetPlaylists extends AsyncTask<Void, Void, Vector<HashMap<String, String>>>
 {
-    private String authToken;
-    private String url;
+    private final String authToken;
+    private final String url;
 
-    private MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
 
     private String errorMessage = "";
 
@@ -131,7 +131,7 @@ public class AsyncGetPlaylists extends AsyncTask<Void, Void, Vector<HashMap<Stri
 
         // add all resulting playlists
         int defective = 0;
-        for(HashMap<String, String> playlist : playlists) {
+        for (HashMap<String, String> playlist : playlists) {
             // just to be on the safe side
             if (!playlist.containsKey("id") || !playlist.containsKey("name")) {
                 defective++;

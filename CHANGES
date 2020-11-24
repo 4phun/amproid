@@ -1,3 +1,14 @@
+1.11.3 - 2020-11-20
+    Added back support for 7 Nougat and 8 Oreo
+    Android Auto functionality is disabled for now
+
+1.11.2 - 2020-11-19
+    Dropped support for older Android versions, minimum is now 9 Pie
+    Night theme
+
+1.11.1 - 2020-11-8
+    Support for Google Play automated testing
+
 1.11 - 2020-11-01
     Better handling of login errors
 
