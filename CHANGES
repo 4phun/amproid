@@ -1,3 +1,7 @@
+1.12 - 2020-11-24
+    Workaround for "limit=none" bug in Ampache API 4.2.4
+    Removed persistent notification
+
 1.11.3 - 2020-11-20
     Added back support for 7 Nougat and 8 Oreo
     Android Auto functionality is disabled for now

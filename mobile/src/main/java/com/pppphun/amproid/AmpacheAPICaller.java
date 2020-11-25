@@ -84,6 +84,8 @@ class AmpacheAPICaller
             return new Vector<>();
         }
 
+        int apiVersion = pingForVersion();
+
         errorMessage = "";
 
         // build query
@@ -91,7 +93,9 @@ class AmpacheAPICaller
         queryString.addNameValue("action", "artist_albums");
         queryString.addNameValue("auth", token);
         queryString.addNameValue("filter", artistId);
-        queryString.addNameValue("limit", "none");
+        if (apiVersion != 424000) {
+            queryString.addNameValue("limit", "none");
+        }
 
         // create URL
         URL callUrl;
@@ -123,13 +127,17 @@ class AmpacheAPICaller
             return new Vector<>();
         }
 
+        int apiVersion = pingForVersion();
+
         errorMessage = "";
 
         // build query
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "artists");
         queryString.addNameValue("auth", token);
-        queryString.addNameValue("limit", "none");
+        if (apiVersion != 424000) {
+            queryString.addNameValue("limit", "none");
+        }
 
         // create URL
         URL callUrl;
@@ -187,7 +195,9 @@ class AmpacheAPICaller
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "get_indexes");
         queryString.addNameValue("auth", token);
-        queryString.addNameValue("limit", "none");
+        if (apiVersion != 424000) {
+            queryString.addNameValue("limit", "none");
+        }
         queryString.addNameValue("type", "playlist");
         if (apiVersion >= 5000000) {
             queryString.addNameValue("include", "0");
@@ -223,6 +233,8 @@ class AmpacheAPICaller
             return new Vector<>();
         }
 
+        int apiVersion = pingForVersion();
+
         errorMessage = "";
 
         // build query
@@ -231,20 +243,26 @@ class AmpacheAPICaller
 
         // count = 0 means no limit
         if (count == 0) {
-            queryString.addNameValue("limit", "none");
-        } else {
+            if (apiVersion != 424000) {
+                queryString.addNameValue("limit", "none");
+            }
+        }
+        else {
             queryString.addNameValue("limit", String.valueOf(count));
         }
 
         // empty id means random
         if ((id == null) || id.isEmpty() || (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_NONE)) {
             queryString.addNameValue("action", "playlist_generate");
-        } else {
+        }
+        else {
             if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_ALBUM) {
                 queryString.addNameValue("action", "album_songs");
-            } else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_PLAYLIST) {
+            }
+            else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_PLAYLIST) {
                 queryString.addNameValue("action", "playlist_songs");
-            } else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_SONG) {
+            }
+            else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_SONG) {
                 queryString.addNameValue("action", "song");
             }
             queryString.addNameValue("filter", id);
@@ -687,9 +705,11 @@ class AmpacheAPICaller
             while (xmlState != XmlPullParser.END_DOCUMENT) {
                 if (xmlState == XmlPullParser.START_TAG) {
                     currentElement = xmlPullParser.getName();
-                } else if (xmlState == XmlPullParser.END_TAG) {
+                }
+                else if (xmlState == XmlPullParser.END_TAG) {
                     currentElement = "";
-                } else if (xmlState == XmlPullParser.TEXT) {
+                }
+                else if (xmlState == XmlPullParser.TEXT) {
                     if (tags.contains(currentElement)) {
                         results.put(currentElement, xmlPullParser.getText());
                     }
@@ -751,15 +771,18 @@ class AmpacheAPICaller
                             i++;
                         }
                     }
-                } else if (xmlState == XmlPullParser.END_TAG) {
+                }
+                else if (xmlState == XmlPullParser.END_TAG) {
                     currentElement = "";
-                } else if (xmlState == XmlPullParser.TEXT) {
+                }
+                else if (xmlState == XmlPullParser.TEXT) {
                     if (subTags.contains(currentElement) && (subResults != null)) {
                         if ((currentElement.compareTo("tag") == 0) && (subResults.containsKey(currentElement))) {
                             String tags = subResults.get(currentElement);
                             tags = tags + "," + xmlPullParser.getText();
                             subResults.put(currentElement, tags);
-                        } else {
+                        }
+                        else {
                             subResults.put(currentElement, xmlPullParser.getText());
                         }
                     }

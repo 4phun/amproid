@@ -150,10 +150,12 @@ public class AmproidMainActivity extends AppCompatActivity
             startService(intentAmproidService);
         }
 
+        /*
         SharedPreferences preferences = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
         if (preferences.getBoolean(getString(R.string.persistence_use_preference), true)) {
             togglePresenceForever(true);
         }
+        */
 
         mediaBrowser = new MediaBrowserCompat(this, new ComponentName(this, AmproidService.class), new ConnectionCallback(), null);
 
@@ -374,11 +376,13 @@ public class AmproidMainActivity extends AppCompatActivity
         View view = getLayoutInflater().inflate(R.layout.dialog_options, null);
         builder.setView(view);
 
+        /*
         final CheckBox usePresenceForever = view.findViewById(R.id.use_presence_forever);
         usePresenceForever.setChecked(preferences.getBoolean(getString(R.string.persistence_use_preference), true));
 
         final TextView presenceForeverInfo = view.findViewById(R.id.presence_forever_info);
         presenceForeverInfo.setTextSize(usePresenceForever.getTextSize() / getResources().getDisplayMetrics().scaledDensity - 2);
+        */
 
         final CheckBox hideDotPlaylists = view.findViewById(R.id.hide_dot_playlists);
         hideDotPlaylists.setChecked(preferences.getBoolean(getString(R.string.dot_playlists_hide_preference), true));
@@ -390,11 +394,15 @@ public class AmproidMainActivity extends AppCompatActivity
             public void onClick(DialogInterface dialog, int which)
             {
                 SharedPreferences.Editor preferencesEditor = preferences.edit();
+                /*
                 preferencesEditor.putBoolean(getString(R.string.persistence_use_preference), usePresenceForever.isChecked());
+                */
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
                 preferencesEditor.commit();
 
+                /*
                 togglePresenceForever(usePresenceForever.isChecked());
+                */
             }
         });
 
@@ -426,6 +434,7 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
+    /*
     private void togglePresenceForever(boolean on)
     {
         Intent intent = new Intent(this, PresenceForever.class);
@@ -442,6 +451,7 @@ public class AmproidMainActivity extends AppCompatActivity
 
         stopService(intent);
     }
+    */
 
 
     private static class AdapterItem

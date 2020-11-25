@@ -80,7 +80,9 @@
                 android:resource="@xml/authenticator" />
         </service>
 
+        <!--
         <service android:name=".PresenceForever" />
+        -->
 
         <activity android:name=".AmproidMainActivity">
             <intent-filter>
