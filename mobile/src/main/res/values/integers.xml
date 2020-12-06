@@ -27,8 +27,10 @@
     <!-- asynchronous tasks -->
     <integer name="async_validate_token">101</integer>
     <integer name="async_get_tracks">102</integer>
-    <integer name="async_image_downloader">103</integer>
-    <integer name="async_search">104</integer>
-    <integer name="async_search_results_sent">105</integer>
+    <integer name="async_get_playlists">103</integer>
+    <integer name="async_get_radios">104</integer>
+    <integer name="async_image_downloader">105</integer>
+    <integer name="async_search">106</integer>
+    <integer name="async_search_results_sent">107</integer>
 
 </resources>

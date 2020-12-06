@@ -182,15 +182,15 @@ public class AsyncGetTracks extends AsyncTask<Void, Void, Vector<Track>>
 
             // add "up one level"
             if ((artistAmpacheId != null) && !artistAmpacheId.isEmpty()) {
-            results.add(
-                    new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(PREFIX_ARTIST + artistAmpacheId)
-                                    .setTitle(Amproid.getAppContext().getString(R.string.up_one_level_songs))
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                    )
-            );
+                results.add(
+                        new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(PREFIX_ARTIST + artistAmpacheId)
+                                        .setTitle(Amproid.getAppContext().getString(R.string.up_one_level_songs))
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                        )
+                );
             }
 
             // @formatter:on

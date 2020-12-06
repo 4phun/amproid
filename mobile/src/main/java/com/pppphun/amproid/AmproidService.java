@@ -22,6 +22,7 @@
 
 package com.pppphun.amproid;
 
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
@@ -65,6 +66,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.session.MediaButtonReceiver;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -102,17 +104,18 @@ import static com.pppphun.amproid.Amproid.bundleGetString;
 import static com.pppphun.amproid.Amproid.sendLocalBroadcast;
 
 
-@SuppressWarnings("FieldMayBeFinal")
 public class AmproidService extends MediaBrowserServiceCompat
 {
     // miscellaneous package-wide constants
     final static int LOUDNESS_GAIN_DEFAULT = 300;
+    final static int ONE_HOUR_MILLIS       = 60 * 60 * 1000;
 
     // browse children prefixes
     final static String PREFIX_ALBUM    = "album~";
     final static String PREFIX_ARTIST   = "artist~";
     final static String PREFIX_PLAYLIST = "playlist~";
     final static String PREFIX_SONG     = "song~";
+    final static String PREFIX_RADIO    = "radio~";
 
     // play mode constants
     final static int PLAY_MODE_UNKNOWN  = 0;
@@ -133,11 +136,15 @@ public class AmproidService extends MediaBrowserServiceCompat
     Equalizer.Settings equalizerSettings   = null;
     int                loudnessGainSetting = LOUDNESS_GAIN_DEFAULT;
 
+    // caches
+    Vector<HashMap<String, String>> radios    = new Vector<>();
+    Vector<HashMap<String, String>> playlists = new Vector<>();
+
     // objects to implement media session
-    private PlaybackStateCompat.Builder stateBuilder         = new PlaybackStateCompat.Builder();
-    private MediaMetadataCompat.Builder metadataBuilder      = new MediaMetadataCompat.Builder();
-    private MediaSessionCallback        mediaSessionCallback = new MediaSessionCallback();
-    private MediaSessionCompat          mediaSession         = null;
+    private final PlaybackStateCompat.Builder stateBuilder         = new PlaybackStateCompat.Builder();
+    private final MediaMetadataCompat.Builder metadataBuilder      = new MediaMetadataCompat.Builder();
+    private final MediaSessionCallback        mediaSessionCallback = new MediaSessionCallback();
+    private       MediaSessionCompat          mediaSession         = null;
 
     // to handle our notification
     private NotificationCompat.Builder notificationBuilder = null;
@@ -151,7 +158,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = null;
 
     // IPC with this project's activities
-    private AmproidBroacastReceiver amproidBroacastReceiver = new AmproidBroacastReceiver();
+    private final AmproidBroacastReceiver amproidBroacastReceiver = new AmproidBroacastReceiver();
 
     // fields to support connection with Ampache server
     private int     authAttempts    = 0;
@@ -159,31 +166,34 @@ public class AmproidService extends MediaBrowserServiceCompat
     private String  authToken       = null;
 
     // play mode and related fields
-    private int           playMode       = PLAY_MODE_UNKNOWN;
-    private String        playlistId     = null;
-    private String        albumId        = null;
-    private String        browseId       = null;
-    private Vector<Track> playlistTracks = new Vector<>();
-    private int           playlistIndex  = 0;
-    private boolean       pausedByUser   = false;
-    private boolean       haveAudioFocus = false;
+    private       int           playMode       = PLAY_MODE_UNKNOWN;
+    private       String        playlistId     = null;
+    private       String        albumId        = null;
+    private       String        browseId       = null;
+    private final Vector<Track> playlistTracks = new Vector<>();
+    private       int           playlistIndex  = 0;
+    private       boolean       pausedByUser   = false;
+    private       boolean       haveAudioFocus = false;
 
     // Google Assistant support
     private Bundle  searchParameters = null;
     private boolean hasBoundClients  = false;
-    private int     quitAttempts     = 0;
-    private boolean quitting         = false;
+
+    // miscellanea
+    private       int     quitAttempts = 0;
+    private       boolean quitting     = false;
+    private final boolean radioEnabled = false;   // TODO: re-enable when Ampache support is released
 
     // async tasks
     @SuppressWarnings("rawtypes")
-    private Vector<AsyncTask> asyncTasks = new Vector<>();
+    private final Vector<AsyncTask> asyncTasks = new Vector<>();
 
     // delayed tasks
 
-    private Handler mainHandler              = new Handler(Looper.getMainLooper());
-    private int     delayedStopSecsRemaining = 0;
+    private final Handler mainHandler              = new Handler(Looper.getMainLooper());
+    private       int     delayedStopSecsRemaining = 0;
 
-    private Runnable delayedGetAuthToken                                = new Runnable()
+    private final Runnable delayedGetAuthToken = new Runnable()
     {
         @Override
         public void run()
@@ -192,7 +202,8 @@ public class AmproidService extends MediaBrowserServiceCompat
             AccountManager.get(AmproidService.this).getAuthToken(selectedAccount, "", null, true, new AmproidService.AmproidAccountManagerCallback(), null);
         }
     };
-    private Runnable delayedMediaSessionUpdateDurationPositionIfPlaying = new Runnable()
+
+    private final Runnable delayedMediaSessionUpdateDurationPositionIfPlaying = new Runnable()
     {
         @Override
         public void run()
@@ -200,7 +211,23 @@ public class AmproidService extends MediaBrowserServiceCompat
             mediaSessionUpdateDurationPositionIfPlaying();
         }
     };
-    private Runnable delayedQuit                                        = new Runnable()
+    private final Runnable delayedStop                                        = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            delayedStopSecsRemaining--;
+            fakeTrackMessage(String.format(getString(R.string.aa_quit_time), delayedStopSecsRemaining), getString(R.string.aa_quit_desc));
+
+            if (delayedStopSecsRemaining <= 0) {
+                mediaSessionCallback.onStop();
+                return;
+            }
+
+            mainHandler.postDelayed(delayedStop, 1000);
+        }
+    };
+    private final Runnable delayedQuit                                        = new Runnable()
     {
         @Override
         public void run()
@@ -245,20 +272,16 @@ public class AmproidService extends MediaBrowserServiceCompat
             stopSelf();
         }
     };
-    private Runnable delayedStop                                        = new Runnable()
+    private final Runnable refreshPlaylistsCache                              = new Runnable()
     {
         @Override
         public void run()
         {
-            delayedStopSecsRemaining--;
-            fakeTrackMessage(String.format(getString(R.string.aa_quit_time), delayedStopSecsRemaining), getString(R.string.aa_quit_desc));
+            String serverUrl = Amproid.getServerUrl(selectedAccount);
+            asyncTasks.add(new AsyncGetPlaylists(authToken, serverUrl).execute());
 
-            if (delayedStopSecsRemaining <= 0) {
-                mediaSessionCallback.onStop();
-                return;
-            }
-
-            mainHandler.postDelayed(delayedStop, 1000);
+            // refresh every hour
+            mainHandler.postDelayed(refreshPlaylistsCache, ONE_HOUR_MILLIS);
         }
     };
 
@@ -278,7 +301,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         mediaSession.setCallback(mediaSessionCallback);
         mediaSession.setPlaybackState(stateBuilder.build());
 
-        // noinspection deprecation - this is required for older Android versions
+        //noinspection deprecation
         mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
 
         // set the session token for this media browser service
@@ -319,7 +342,9 @@ public class AmproidService extends MediaBrowserServiceCompat
 
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_random_id)).setTitle(getString(R.string.item_random_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_playlists_id)).setTitle(getString(R.string.item_playlists_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
-
+            if (radioEnabled) {
+                results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_radio_id)).setTitle(getString(R.string.item_radio_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+            }
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_browse_id)).setTitle(getString(R.string.item_browse_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
 
             result.sendResult(results);
@@ -335,8 +360,13 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         // playlists top level - get all playlists
         if (parentMediaId.compareTo(getString(R.string.item_playlists_id)) == 0) {
-            result.detach();
-            asyncTasks.add(new AsyncGetPlaylists(authToken, serverUrl, result).execute());
+            if (!playlists.isEmpty()) {
+                sendPlaylistsToMediaBrowserService(result);
+            }
+            else {
+                result.detach();
+                asyncTasks.add(new AsyncGetPlaylists(authToken, serverUrl, result).execute());
+            }
             return;
         }
 
@@ -344,6 +374,13 @@ public class AmproidService extends MediaBrowserServiceCompat
         if (parentMediaId.compareTo(getString(R.string.item_browse_id)) == 0) {
             result.detach();
             asyncTasks.add(new AsyncGetArtists(authToken, serverUrl, result).execute());
+            return;
+        }
+
+        // radio top level - get all radio stations
+        if (parentMediaId.compareTo(getString(R.string.item_radio_id)) == 0) {
+            result.detach();
+            asyncTasks.add(new AsyncGetRadios(authToken, serverUrl, result).execute());
             return;
         }
 
@@ -417,6 +454,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         try {
             // cancel scheduled stuffs
             mainHandler.removeCallbacks(delayedGetAuthToken);
+            mainHandler.removeCallbacks(refreshPlaylistsCache);
         }
         catch (Exception e) {
             // nothing to do here
@@ -469,32 +507,6 @@ public class AmproidService extends MediaBrowserServiceCompat
         delDirOnExit(getCacheDir());
 
         super.onDestroy();
-    }
-
-
-    private void delDirOnExit(File dir)
-    {
-        if ((dir == null) || !dir.exists()) {
-            return;
-        }
-
-        File[] children = dir.listFiles();
-
-        if (children == null) {
-            return;
-        }
-        for (File child : children) {
-            if (child.isDirectory()) {
-                delDirOnExit(child);
-            }
-
-            try {
-                child.deleteOnExit();
-            }
-            catch (Exception e) {
-                // nothing we can do about it
-            }
-        }
     }
 
 
@@ -568,7 +580,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
 
         // get the result
-        // noinspection unchecked - we know what we have put in to the bundle in AsyncGetTracks
+        @SuppressWarnings("unchecked")
         Vector<Track> tracks = (Vector<Track>) data.getSerializable("tracks");
         if ((tracks == null) || tracks.isEmpty()) {
             fakeTrackMessage(R.string.error_error, getString(R.string.error_tracks_empty));
@@ -608,7 +620,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
 
         // get the result
-        // noinspection unchecked - we know what we have put in to the bundle in AsyncGetTracks
+        @SuppressWarnings("unchecked")
         HashMap<Integer, Vector<HashMap<String, String>>> found = (HashMap<Integer, Vector<HashMap<String, String>>>) data.getSerializable("found");
         if (found == null) {
             fakeTrackMessage(R.string.error_error, getString(R.string.error_searchresults_empty));
@@ -738,6 +750,10 @@ public class AmproidService extends MediaBrowserServiceCompat
         // get saved play mode
         loadPlayMode();
 
+        // get saved playlists cache and refresh it after a delay
+        loadPlaylists();
+        mainHandler.postDelayed(refreshPlaylistsCache, 30 * 1000);
+
         // more feedback
         if (playMode == PLAY_MODE_PLAYLIST) {
             fakeTrackMessage(R.string.getting_playlist_tracks, "");
@@ -829,6 +845,32 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
+    private void delDirOnExit(File dir)
+    {
+        if ((dir == null) || !dir.exists()) {
+            return;
+        }
+
+        File[] children = dir.listFiles();
+
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isDirectory()) {
+                delDirOnExit(child);
+            }
+
+            try {
+                child.deleteOnExit();
+            }
+            catch (Exception e) {
+                // nothing we can do about it
+            }
+        }
+    }
+
+
     // display a message in place of the track's title
     private void fakeTrackMessage(String message, String subMessage)
     {
@@ -875,6 +917,26 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         if ((playMode < PLAY_MODE_RANDOM) || (playMode > PLAY_MODE_ALBUM)) {
             playMode = PLAY_MODE_RANDOM;
+        }
+    }
+
+
+    private void loadPlaylists()
+    {
+        playlists.clear();
+
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.playlist_cache_preferences), MODE_PRIVATE);
+
+        int key = 10;
+        while (preferences.contains(Integer.toString(key))) {
+            HashMap<String, String> playlist = new HashMap<>();
+
+            playlist.put("id", preferences.getString(Integer.toString(key), ""));
+            playlist.put("name", preferences.getString(Integer.toString(key + 1), ""));
+
+            playlists.add(playlist);
+
+            key += 10;
         }
     }
 
@@ -943,6 +1005,59 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
 
         return returnValue;
+    }
+
+
+    private void sendPlaylistsToMediaBrowserService(@NonNull final Result<List<MediaBrowserCompat.MediaItem>> resultToSend)
+    {
+        ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
+
+        // add root a.k.a. link to "home" as the first element
+        results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                .setMediaId(Amproid.getAppContext().getString(R.string.item_root_id))
+                .setTitle(Amproid.getAppContext().getString(R.string.item_root_desc))
+                .build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+
+        final SharedPreferences preferences      = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
+        boolean                 hideDotPlaylists = preferences.getBoolean(getString(R.string.dot_playlists_hide_preference), true);
+
+        // add all resulting playlists
+        int defective = 0;
+        for (HashMap<String, String> playlist : playlists) {
+            // just to be on the safe side
+            if (!playlist.containsKey("id") || !playlist.containsKey("name")) {
+                defective++;
+                continue;
+            }
+
+            String name = playlist.get("name");
+
+            // skip .playlist if user prefers
+            if (hideDotPlaylists && (name != null) && name.startsWith(".")) {
+                continue;
+            }
+
+            // @formatter:off
+            results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                    .setMediaId(PREFIX_PLAYLIST + playlist.get("id"))
+                    .setTitle(name)
+                    .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+            // @formatter:on
+        }
+
+        // let everyone know if there was a problem
+        if (defective > 0) {
+            // yet another link to home
+            // @formatter:off
+            results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                    .setMediaId(Amproid.getAppContext().getString(R.string.item_root_id))
+                    .setTitle(String.format(Amproid.getAppContext().getString(R.string.error_defective_playlists), defective))
+                    .build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+            // @formatter:on
+        }
+
+        // send it back to the media browser service and we're done
+        resultToSend.sendResult(results);
     }
 
 
@@ -1277,6 +1392,56 @@ public class AmproidService extends MediaBrowserServiceCompat
 
                 asyncTasks.add(new AsyncGetTracks(authToken, serverUrl, playMode, browseId).execute());
             }
+
+            // user selected a radio station
+            if (mediaId.startsWith(PREFIX_RADIO)) {
+                if (!radioEnabled) {
+                    return;
+                }
+                if (mediaPlayer != null) {
+                    mediaPlayer.pause();
+                }
+
+                browseId = mediaId.replace(PREFIX_RADIO, "");
+
+                URL url;
+                try {
+                    url = new URL(browseId);
+                }
+                catch (Exception e) {
+                    fakeTrackMessage(R.string.error_invalid_radio_url, "");
+                    return;
+                }
+
+                String name = getString(R.string.radio_station);
+                for (HashMap<String, String> radio : radios) {
+                    String radioUrl = radio.get("url");
+                    if ((radioUrl != null) && (radioUrl.compareTo(browseId) == 0)) {
+                        name = StringEscapeUtils.unescapeHtml4(radio.get("name"));
+                    }
+                }
+
+                // we're going to act like this is just another track in shuffle
+                playMode = PLAY_MODE_RANDOM;
+
+                Track track = new Track();
+                track.setTitle(name);
+                track.setArtist("");
+                track.setAlbum(getString(R.string.radio_station));
+                track.setUrl(url);
+
+                // let's start playing
+                startTrack(track);
+
+                // no image info, use our own
+                if ((notificationBuilder != null) && (notificationManager != null)) {
+                    notificationBuilder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
+                    notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+                }
+
+                metadataBuilder.putBitmap(METADATA_KEY_ART, BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
+                mediaSession.setMetadata(metadataBuilder.build());
+            }
         }
 
 
@@ -1529,6 +1694,44 @@ public class AmproidService extends MediaBrowserServiceCompat
                 else if (asyncType == getResources().getInteger(R.integer.async_get_tracks)) {
                     asyncProcessResultsGetTracks(extras);
                 }
+                else if (asyncType == getResources().getInteger(R.integer.async_get_playlists)) {
+                    asyncHousekeeping();
+
+                    String errorMessage = extras.getString("errorMessage", "");
+                    if (errorMessage.isEmpty()) {
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) extras.getSerializable("playlists");
+                        if ((playlists != null) && !playlists.isEmpty()) {
+                            AmproidService.this.playlists = playlists;
+
+                            SharedPreferences        preferences       = getSharedPreferences(getString(R.string.playlist_cache_preferences), Context.MODE_PRIVATE);
+                            SharedPreferences.Editor preferencesEditor = preferences.edit();
+
+                            preferencesEditor.clear();
+
+                            int key = 10;
+                            for (HashMap<String, String> playlist : playlists) {
+                                preferencesEditor.putString(Integer.toString(key), playlist.get("id"));
+                                preferencesEditor.putString(Integer.toString(key + 1), playlist.get("name"));
+                                key += 10;
+                            }
+
+                            preferencesEditor.commit();
+
+                            Toast.makeText(getApplicationContext(), R.string.playlist_cache_refreshed, Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+                else if (asyncType == getResources().getInteger((R.integer.async_get_radios))) {
+                    String errorMessage = extras.getString("errorMessage", "");
+                    if (errorMessage.isEmpty()) {
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> radios = (Vector<HashMap<String, String>>) extras.getSerializable("radios");
+                        if ((radios != null) && !radios.isEmpty()) {
+                            AmproidService.this.radios = radios;
+                        }
+                    }
+                }
                 // search
                 else if (asyncType == getResources().getInteger(R.integer.async_search)) {
                     searchParameters = null;
@@ -1690,10 +1893,10 @@ public class AmproidService extends MediaBrowserServiceCompat
         Equalizer        equalizer        = null;
         LoudnessEnhancer loudnessEnhancer = null;
 
-        private Track   track;
-        private boolean sought        = false;
-        private boolean erred         = false;
-        private int     errorResource = R.string.error_error;
+        private final Track   track;
+        private       boolean sought        = false;
+        private       boolean erred         = false;
+        private       int     errorResource = R.string.error_error;
 
         private Timer positionTimer;
 
@@ -1738,8 +1941,10 @@ public class AmproidService extends MediaBrowserServiceCompat
                     }
 
                     if (AmproidMediaPlayer.this.track.isDoFade() && !sought && (fadeDirection == FADE_DIRECTION_NONE) && (position >= (duration - FADE_DURATION - 1000))) {
-                        fadeDirection = FADE_DIRECTION_OUT;
-                        fadeValue     = 1.0f;
+                        synchronized (this) {
+                            fadeDirection = FADE_DIRECTION_OUT;
+                            fadeValue     = 1.0f;
+                        }
                         startFade();
                     }
                 }
@@ -1763,7 +1968,9 @@ public class AmproidService extends MediaBrowserServiceCompat
                     }
 
                     // also get the art
-                    asyncTasks.add(new AsyncImageDownloader(AmproidMediaPlayer.this.track.getPictureUrl()).execute());
+                    if (AmproidMediaPlayer.this.track.getPictureUrl() != null) {
+                        asyncTasks.add(new AsyncImageDownloader(AmproidMediaPlayer.this.track.getPictureUrl()).execute());
+                    }
                 }
             });
 

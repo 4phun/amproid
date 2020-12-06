@@ -27,6 +27,29 @@
     android:orientation="vertical">
 
     <CheckBox
+        android:id="@+id/use_presence_forever"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:layout_marginRight="@dimen/distance_from_edge"
+        android:ellipsize="middle"
+        android:maxLines="3"
+        android:singleLine="false"
+        android:text="@string/use_presence_forever" />
+
+    <TextView
+        android:id="@+id/presence_forever_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+
+        android:layout_marginRight="@dimen/distance_from_edge"
+        android:text="@string/persistence_notification_info"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
+        android:textStyle="italic" />
+
+    <CheckBox
         android:id="@+id/hide_dot_playlists"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

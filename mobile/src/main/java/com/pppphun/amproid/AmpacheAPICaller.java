@@ -22,6 +22,7 @@
 
 package com.pppphun.amproid;
 
+
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 
@@ -55,6 +56,13 @@ class AmpacheAPICaller
     private static final int    SEARCH_MAX_ARTISTS = 10;
     private static final int    MIN_API_VERSION    = 400001;
     private static final String API_PATH           = "/server/xml.server.php";
+
+
+    public enum GetTracksIdType
+    {
+        GET_TRACKS_ID_TYPE_NONE, GET_TRACKS_ID_TYPE_SONG, GET_TRACKS_ID_TYPE_ALBUM, GET_TRACKS_ID_TYPE_PLAYLIST
+    }
+
 
     private URL     baseUrl;
     private String  errorMessage     = "";
@@ -93,7 +101,7 @@ class AmpacheAPICaller
         queryString.addNameValue("action", "artist_albums");
         queryString.addNameValue("auth", token);
         queryString.addNameValue("filter", artistId);
-        if (apiVersion != 424000) {
+        if ((apiVersion != 424000) && (apiVersion != 425000)) {
             queryString.addNameValue("limit", "none");
         }
 
@@ -135,7 +143,7 @@ class AmpacheAPICaller
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "artists");
         queryString.addNameValue("auth", token);
-        if (apiVersion != 424000) {
+        if ((apiVersion != 424000) && (apiVersion != 425000)) {
             queryString.addNameValue("limit", "none");
         }
 
@@ -170,9 +178,47 @@ class AmpacheAPICaller
     }
 
 
-    boolean isLoginShouldRetry()
+    Vector<HashMap<String, String>> getLiveStreams(String token)
     {
-        return loginShouldRetry;
+        if (baseUrl == null) {
+            setErrorMessage(R.string.error_invalid_server_url);
+            return new Vector<>();
+        }
+        if (token.isEmpty()) {
+            setErrorMessage(R.string.error_blank_token);
+            return new Vector<>();
+        }
+
+        int apiVersion = pingForVersion();
+
+        errorMessage = "";
+
+        // build query
+        QueryStringBuilder queryString = new QueryStringBuilder();
+        queryString.addNameValue("action", "get_indexes");
+        queryString.addNameValue("auth", token);
+        if ((apiVersion != 424000) && (apiVersion != 425000)) {
+            queryString.addNameValue("limit", "none");
+        }
+        queryString.addNameValue("type", "live_stream");
+
+        // create URL
+        URL callUrl;
+        try {
+            callUrl = new URL(baseUrl.toString() + API_PATH + "?" + queryString.getQueryString());
+        }
+        catch (Exception e) {
+            errorMessage = e.getMessage();
+            return new Vector<>();
+        }
+
+        // tags that we're interested in
+        Vector<String> tagsNeeded = new Vector<>();
+        tagsNeeded.add("name");
+        tagsNeeded.add("url");
+
+        // make the call
+        return blockingTransactionMulti(callUrl, "live_stream", tagsNeeded);
     }
 
 
@@ -195,7 +241,7 @@ class AmpacheAPICaller
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "get_indexes");
         queryString.addNameValue("auth", token);
-        if (apiVersion != 424000) {
+        if ((apiVersion != 424000) && (apiVersion != 425000)) {
             queryString.addNameValue("limit", "none");
         }
         queryString.addNameValue("type", "playlist");
@@ -243,7 +289,7 @@ class AmpacheAPICaller
 
         // count = 0 means no limit
         if (count == 0) {
-            if (apiVersion != 424000) {
+            if ((apiVersion != 424000) && (apiVersion != 425000)) {
                 queryString.addNameValue("limit", "none");
             }
         }
@@ -435,71 +481,9 @@ class AmpacheAPICaller
     }
 
 
-    private int apiVersionFromString(String apiVersionString)
+    boolean isLoginShouldRetry()
     {
-        if (apiVersionString == null) {
-            apiVersionString = "0";
-        }
-
-        int apiVersion = 0;
-
-        try {
-            // old version format: integer
-            apiVersion = Integer.parseInt(apiVersionString);
-        }
-        catch (Exception e) {
-            // new version format introduced at 5.0.0: string major.minor.patch
-            String[] versionParts = apiVersionString.split("\\.");
-            if (versionParts.length == 3) {
-                int majorApiVersion = 0;
-                int minorApiVersion = 0;
-                int patchApiVersion = 0;
-
-                try {
-                    majorApiVersion = Integer.parseInt(versionParts[0]);
-                    minorApiVersion = Integer.parseInt(versionParts[1]);
-                    patchApiVersion = Integer.parseInt(versionParts[2]);
-                }
-                catch (Exception ee) {
-                    // nothing to do here
-                }
-
-                apiVersion = majorApiVersion * 1000000 + minorApiVersion * 1000 + patchApiVersion;
-            }
-
-            // string version must be minimum 5.0.0
-            if (apiVersion < 5000000) {
-                apiVersion = 0;
-            }
-        }
-
-        return apiVersion;
-    }
-
-
-    private int pingForVersion()
-    {
-        if (baseUrl == null) {
-            return 0;
-        }
-
-        QueryStringBuilder queryString = new QueryStringBuilder();
-        queryString.addNameValue("action", "ping");
-
-        URL callUrl;
-        try {
-            callUrl = new URL(baseUrl.toString() + API_PATH + "?" + queryString.getQueryString());
-        }
-        catch (Exception e) {
-            return 0;
-        }
-
-        Vector<String> tagsNeeded = new Vector<>();
-        tagsNeeded.add("version");
-
-        HashMap<String, String> results = blockingTransaction(callUrl, tagsNeeded);
-
-        return apiVersionFromString(results.get("version"));
+        return loginShouldRetry;
     }
 
 
@@ -674,6 +658,48 @@ class AmpacheAPICaller
     }
 
 
+    private int apiVersionFromString(String apiVersionString)
+    {
+        if (apiVersionString == null) {
+            apiVersionString = "0";
+        }
+
+        int apiVersion = 0;
+
+        try {
+            // old version format: integer
+            apiVersion = Integer.parseInt(apiVersionString);
+        }
+        catch (Exception e) {
+            // new version format introduced at 5.0.0: string major.minor.patch
+            String[] versionParts = apiVersionString.split("\\.");
+            if (versionParts.length == 3) {
+                int majorApiVersion = 0;
+                int minorApiVersion = 0;
+                int patchApiVersion = 0;
+
+                try {
+                    majorApiVersion = Integer.parseInt(versionParts[0]);
+                    minorApiVersion = Integer.parseInt(versionParts[1]);
+                    patchApiVersion = Integer.parseInt(versionParts[2]);
+                }
+                catch (Exception ee) {
+                    // nothing to do here
+                }
+
+                apiVersion = majorApiVersion * 1000000 + minorApiVersion * 1000 + patchApiVersion;
+            }
+
+            // string version must be minimum 5.0.0
+            if (apiVersion < 5000000) {
+                apiVersion = 0;
+            }
+        }
+
+        return apiVersion;
+    }
+
+
     private HashMap<String, String> blockingTransaction(@NotNull URL url, @NotNull Vector<String> tags)
     {
         HashMap<String, String> results = new HashMap<>();
@@ -798,6 +824,32 @@ class AmpacheAPICaller
     }
 
 
+    private int pingForVersion()
+    {
+        if (baseUrl == null) {
+            return 0;
+        }
+
+        QueryStringBuilder queryString = new QueryStringBuilder();
+        queryString.addNameValue("action", "ping");
+
+        URL callUrl;
+        try {
+            callUrl = new URL(baseUrl.toString() + API_PATH + "?" + queryString.getQueryString());
+        }
+        catch (Exception e) {
+            return 0;
+        }
+
+        Vector<String> tagsNeeded = new Vector<>();
+        tagsNeeded.add("version");
+
+        HashMap<String, String> results = blockingTransaction(callUrl, tagsNeeded);
+
+        return apiVersionFromString(results.get("version"));
+    }
+
+
     private String toHexSHA256(@NotNull String input)
     {
         MessageDigest digest;
@@ -817,12 +869,6 @@ class AmpacheAPICaller
         }
 
         return stringBuilder.toString();
-    }
-
-
-    public enum GetTracksIdType
-    {
-        GET_TRACKS_ID_TYPE_NONE, GET_TRACKS_ID_TYPE_SONG, GET_TRACKS_ID_TYPE_ALBUM, GET_TRACKS_ID_TYPE_PLAYLIST
     }
 
 

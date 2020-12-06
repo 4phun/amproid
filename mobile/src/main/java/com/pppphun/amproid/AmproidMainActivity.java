@@ -31,6 +31,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -38,7 +39,6 @@ import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -109,6 +109,7 @@ public class AmproidMainActivity extends AppCompatActivity
     private boolean firstConnection  = true;
     private boolean increasePosition = false;
     private String  lastSubscription = "";
+    private boolean autoOn           = false;
 
     private MediaUIValuesCache mediaUIValuesCache;
 
@@ -127,6 +128,14 @@ public class AmproidMainActivity extends AppCompatActivity
 
         RecyclerView browser = findViewById(R.id.browser);
         browser.setLayoutManager(new LinearLayoutManager(this));
+
+        try {
+            Bundle metadata = this.getPackageManager().getApplicationInfo(this.getPackageName(), PackageManager.GET_META_DATA).metaData;
+            autoOn = metadata.containsKey("com.google.android.gms.car.application");
+        }
+        catch (Exception e) {
+            // no problem, nothing to do here
+        }
 
         MainActivityBroacastReceiver broadcastReceiver = new MainActivityBroacastReceiver();
         registerReceiver(broadcastReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
@@ -150,12 +159,13 @@ public class AmproidMainActivity extends AppCompatActivity
             startService(intentAmproidService);
         }
 
-        /*
-        SharedPreferences preferences = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
-        if (preferences.getBoolean(getString(R.string.persistence_use_preference), true)) {
-            togglePresenceForever(true);
+        if (autoOn) {
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
+            if (preferences.getBoolean(getString(R.string.persistence_use_preference), true)) {
+                togglePresenceForever(true);
+            }
         }
-        */
+
 
         mediaBrowser = new MediaBrowserCompat(this, new ComponentName(this, AmproidService.class), new ConnectionCallback(), null);
 
@@ -171,7 +181,7 @@ public class AmproidMainActivity extends AppCompatActivity
         int metaWidth =
                 mediaUIValuesCache.screenWidth - 1 -
                 Math.round(
-                        getResources().getDimension(R.dimen.image_size)         +
+                        getResources().getDimension(R.dimen.image_size)  +
                         getResources().getDimension(R.dimen.distance_between)   +
                         getResources().getDimension(R.dimen.distance_from_edge) * 2
                 );
@@ -373,16 +383,17 @@ public class AmproidMainActivity extends AppCompatActivity
         AlertDialog.Builder builder = new AlertDialog.Builder(AmproidMainActivity.this);
         builder.setTitle(R.string.options);
 
-        View view = getLayoutInflater().inflate(R.layout.dialog_options, null);
+        final View view = getLayoutInflater().inflate(autoOn ? R.layout.dialog_options_auto_on : R.layout.dialog_options, null);
         builder.setView(view);
 
-        /*
-        final CheckBox usePresenceForever = view.findViewById(R.id.use_presence_forever);
-        usePresenceForever.setChecked(preferences.getBoolean(getString(R.string.persistence_use_preference), true));
-
-        final TextView presenceForeverInfo = view.findViewById(R.id.presence_forever_info);
-        presenceForeverInfo.setTextSize(usePresenceForever.getTextSize() / getResources().getDisplayMetrics().scaledDensity - 2);
-        */
+        CheckBox usePresenceForever;
+        TextView presenceForeverInfo;
+        if (autoOn) {
+            usePresenceForever = view.findViewById(R.id.use_presence_forever);
+            usePresenceForever.setChecked(preferences.getBoolean(getString(R.string.persistence_use_preference), true));
+            presenceForeverInfo = view.findViewById(R.id.presence_forever_info);
+            presenceForeverInfo.setTextSize(usePresenceForever.getTextSize() / getResources().getDisplayMetrics().scaledDensity - 2);
+        }
 
         final CheckBox hideDotPlaylists = view.findViewById(R.id.hide_dot_playlists);
         hideDotPlaylists.setChecked(preferences.getBoolean(getString(R.string.dot_playlists_hide_preference), true));
@@ -393,16 +404,21 @@ public class AmproidMainActivity extends AppCompatActivity
             @Override
             public void onClick(DialogInterface dialog, int which)
             {
+                boolean usePresenceForeverChecked = false;
+                if (autoOn) {
+                    usePresenceForeverChecked = ((CheckBox)view.findViewById(R.id.use_presence_forever)).isChecked();
+                }
+
                 SharedPreferences.Editor preferencesEditor = preferences.edit();
-                /*
-                preferencesEditor.putBoolean(getString(R.string.persistence_use_preference), usePresenceForever.isChecked());
-                */
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
+                if (autoOn) {
+                    preferencesEditor.putBoolean(getString(R.string.persistence_use_preference), usePresenceForeverChecked);
+                }
                 preferencesEditor.commit();
 
-                /*
-                togglePresenceForever(usePresenceForever.isChecked());
-                */
+                if (autoOn) {
+                    togglePresenceForever(usePresenceForeverChecked);
+                }
             }
         });
 
@@ -434,7 +450,6 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
-    /*
     private void togglePresenceForever(boolean on)
     {
         Intent intent = new Intent(this, PresenceForever.class);
@@ -451,7 +466,6 @@ public class AmproidMainActivity extends AppCompatActivity
 
         stopService(intent);
     }
-    */
 
 
     private static class AdapterItem
@@ -515,7 +529,7 @@ public class AmproidMainActivity extends AppCompatActivity
             try {
                 mediaController = new MediaControllerCompat(AmproidMainActivity.this, token);
             }
-            catch (RemoteException e) {
+            catch (Exception e) {
                 // nothing to do here, mediaController remains null, this is handled below
             }
 
@@ -1018,7 +1032,7 @@ public class AmproidMainActivity extends AppCompatActivity
         public void onReceive(Context context, Intent intent)
         {
             // service quits or screen is turned off
-            if ((intent.getAction() != null) && (intent.getAction().equals(getString(R.string.quit_broadcast_action)) || intent.getAction().equals(Intent.ACTION_SCREEN_OFF))) {
+            if ((intent.getAction() != null) && (intent.getAction().equals(getString(R.string.quit_broadcast_action)) || (autoOn && intent.getAction().equals(Intent.ACTION_SCREEN_OFF)))) {
                 finishAndRemoveTask();
             }
 

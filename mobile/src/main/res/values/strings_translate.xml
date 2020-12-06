@@ -14,8 +14,8 @@
   ~
   ~ Amproid is distributed in the hope that it will be useful,
   ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   ~ GNU General Public License for more details.
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   ~
   ~ You should have received a copy of the GNU General Public License
   ~ along with Amproid. If not, see http://www.gnu.org/licenses/
@@ -29,6 +29,7 @@
     <string name="cancel">Cancel</string>
     <string name="unknown">Unknown</string>
     <string name="initializing">Initializing</string>
+    <string name="radio_station">Radio Station</string>
 
 
     <!-- accounts -->
@@ -82,12 +83,14 @@
     <string name="item_random_desc">Shuffle</string>
     <string name="item_playlists_desc">Playlists</string>
     <string name="item_browse_desc">Browse</string>
+    <string name="item_radio_desc">Radio Stations</string>
     <string name="tracks">Tracks</string>
     <string name="album_suffix">(album)</string>
     <string name="getting_playlist_tracks">Getting tracks in playlist…</string>
     <string name="getting_album_tracks">Getting tracks in album…</string>
     <string name="getting_search_results">Searching…</string>
     <string name="up_one_level_songs">Back to albums</string>
+    <string name="playlist_cache_refreshed">Playlist chach e refreshed</string>
 
     <!-- persistent notification -->
     <string name="persistence_notification">Tap here to open Amproid.</string>
@@ -102,8 +105,10 @@
     <string name="error_defective_artists">%d artist(s) had invalid data</string>
     <string name="error_defective_playlists">%d playlist(s) had invalid data</string>
     <string name="error_defective_tracks">%d track(s) had invalid data</string>
+    <string name="error_defective_radios">%d radio(s) had invalid data</string>
     <string name="error_error">Error</string>
     <string name="error_invalid_credentials">Invalid login credentials</string>
+    <string name="error_invalid_radio_url">Invalid radio station URL</string>
     <string name="error_invalid_server_response">Received an invalid response from the Ampache server</string>
     <string name="error_invalid_server_url">Invalid Ampache server URL</string>
     <string name="error_invalid_user_input">Invalid data entered</string>

@@ -75,12 +75,14 @@
     <string name="playlist_apply_broadcast_action">com.pppphun.amproid.PLAYLIST_APPLY</string>
     <string name="playlist_broadcast_key_list">playlist_list</string>
     <string name="playlist_broadcast_key_index">playlist_index</string>
+    <string name="playlist_cache_preferences">playlist_cache</string>
 
     <!-- browsing -->
     <string name="item_root_id">root</string>
     <string name="item_random_id">random</string>
     <string name="item_playlists_id">playlists</string>
     <string name="item_browse_id">browse</string>
+    <string name="item_radio_id">radio</string>
 
     <!-- legacy deprecated -->
     <string name="persistence_preferences">presence_forever</string>
