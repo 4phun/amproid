@@ -48,14 +48,14 @@
         Corrected track count when reaching end of playlist or album
 
 1.5 - 2020-02-23
-    Smartlists always start from beginning
+    Smart lists always start from beginning
     Skip to previous in playlists and albums
     "Back to albums" button in Browse
     Bugfix:
         Stopping Amproid service
 
 1.4 - 2020-02-18
-    Finetuned Google Assistant support
+    Fine tuned Google Assistant support
 
 1.3 - 2020-02-16
     UI facelift

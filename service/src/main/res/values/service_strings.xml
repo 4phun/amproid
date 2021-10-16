@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ This file is part of Amproid
+  ~
+  ~ Copyright (c) 2019. Peter Papp
+  ~
+  ~ Please visit https://github.com/4phun/Amproid for details
+  ~
+  ~ Amproid is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Amproid is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Amproid. If not, see http://www.gnu.org/licenses/
+  -->
+
+
+<resources>
+
+    <string name="service_name">AmproidService</string>
+
+    <string name="auto_exited_broadcast_action">com.pppphun.amproid.AUTO_EXITED</string>
+
+    <string name="msg_action_async_finished">async_finished</string>
+    <string name="async_no_network_broadcast_action">com.pppphun.amproid.ASYNC_NO_NETWORK</string>
+
+    <string name="eq_preferences">eq</string>
+    <string name="eq_settings_preference">eq_settings</string>
+    <string name="eq_loudness_gain_preference">loudness_gain</string>
+
+    <string name="play_mode_preferences">play_mode_restore</string>
+    <string name="play_mode_play_mode_preference">play_mode</string>
+    <string name="play_mode_playlist_id_preference">playlist_id</string>
+    <string name="play_mode_playlist_index_preference">playlist_index</string>
+    <string name="play_mode_browse_id_preference">radio_id</string>
+    <string name="play_mode_artist_id_preference">artist_id</string>
+    <string name="play_mode_album_id_preference">album_id</string>
+    <string name="playlist_cache_preferences">playlist_cache</string>
+
+    <string name="item_root_id">root</string>
+    <string name="item_recommendations_id">recommendations</string>
+    <string name="item_playlists_id">playlists</string>
+    <string name="item_recent_id">recent</string>
+
+    <array name="fade_tags">
+        <item>Live</item>
+        <item>Medley</item>
+        <item>Nonstop</item>
+    </array>
+
+</resources>
+

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ This file is part of Amproid
+  ~
+  ~ Copyright (c) 2019. Peter Papp
+  ~
+  ~ Please visit https://github.com/4phun/Amproid for details
+  ~
+  ~ Amproid is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Amproid is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ GNU General Public License for more details.
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Amproid. If not, see http://www.gnu.org/licenses/
+  -->
+
+
+<resources>
+
+    <!-- track properties -->
+    <string name="album">Album</string>
+
+    <!-- actions -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="next">Next</string>
+
+    <!-- equalizer -->
+    <string name="eq">EQ</string>
+
+    <!-- options -->
+    <string name="options">Options</string>
+
+    <!-- error messages -->
+    <string name="error_account_type_mismatch">Account type mismatch</string>
+    <string name="error_blank_token">Blank login token</string>
+    <string name="error_invalid_credentials">Invalid login credentials</string>
+    <string name="error_invalid_server_response">Received an invalid response from the Ampache server</string>
+    <string name="error_invalid_server_url">Invalid Ampache server URL</string>
+    <string name="error_no_account_selection">No account selected</string>
+    <string name="error_unsupported_api">Ampache API version %1$d not supported, minimum %2$d needed</string>
+
+</resources>

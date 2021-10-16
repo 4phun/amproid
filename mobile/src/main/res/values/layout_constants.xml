@@ -23,13 +23,11 @@
 
 
 <resources>
-    <dimen name="separation">24dp</dimen>
-    <dimen name="distance_between">9dp</dimen>
-    <dimen name="distance_from_edge">9dp</dimen>
+    <dimen name="separation">15dp</dimen>
+    <dimen name="split">7dp</dimen>
+    <dimen name="distance_between">3dp</dimen>
+    <dimen name="distance_from_edge">5dp</dimen>
     <dimen name="zero">0dp</dimen>
-    <dimen name="image_size">90dp</dimen>
     <dimen name="eq_freq_size">75dp</dimen>
-    <dimen name="media_item_padding_side">9dp</dimen>
-    <dimen name="media_item_padding_top_bottom">5dp</dimen>
-    <dimen name="media_item_border_width">3dp</dimen>
+    <dimen name="recycler_icon_size">64dp</dimen>
 </resources>

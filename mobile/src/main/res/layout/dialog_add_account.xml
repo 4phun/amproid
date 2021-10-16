@@ -25,15 +25,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/separation"
-        android:layout_marginRight="@dimen/distance_from_edge"
-        android:text="@string/url_input_label" />
+    android:orientation="vertical"
+    style="@style/AppDialogTheme">
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -45,18 +38,20 @@
             android:id="@+id/url_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/url_input_hint"
+            android:minHeight="48dp"
+            android:hint="@string/url_input_label"
             android:inputType="textUri"
-            android:paddingTop="@dimen/zero" />
+            android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/separation"
-        android:layout_marginRight="@dimen/distance_from_edge"
-        android:text="@string/user_input_label" />
+        android:layout_marginLeft="@dimen/separation"
+        android:layout_marginRight="@dimen/separation"
+        android:paddingBottom="@dimen/distance_between"
+        android:text="@string/clear_text_warning"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -68,18 +63,11 @@
             android:id="@+id/user_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:hint="@string/user_input_label"
             android:inputType="text"
-            android:maxLines="1"
-            android:paddingTop="@dimen/zero" />
+            android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/separation"
-        android:layout_marginRight="@dimen/distance_from_edge"
-        android:text="@string/psw_input_label" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -91,8 +79,10 @@
             android:id="@+id/psw_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:hint="@string/psw_input_label"
             android:inputType="textPassword"
-            android:paddingTop="@dimen/zero" />
+            android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>

@@ -12,4 +12,14 @@
 !mobile/src/main
 !mobile/src/main/**
 
+!service
+!service/src
+!service/src/main
+!service/src/main/**
+
+!shared
+!shared/src
+!shared/src/main
+!shared/src/main/**
+
 mobile/.gitignore

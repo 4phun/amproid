@@ -41,7 +41,6 @@ public class AmproidAuthenticatorService extends Service
         if (authenticator == null) {
             authenticator = new AmproidAuthenticator(this);
         }
-
         return authenticator.getIBinder();
     }
 }

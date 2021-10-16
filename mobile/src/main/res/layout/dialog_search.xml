@@ -22,19 +22,18 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    style="@style/AppDialogTheme">
 
-    <com.google.android.material.textfield.TextInputLayout
+    <AutoCompleteTextView
+        android:id="@+id/search_input"
+        android:hint="@string/search_label"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
-        android:layout_marginRight="@dimen/distance_from_edge">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/search_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="@dimen/zero" />
-    </com.google.android.material.textfield.TextInputLayout>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text=""
+        android:completionThreshold="3"
+        android:singleLine="true"
+        android:imeOptions="actionDone" />
 
 </LinearLayout>

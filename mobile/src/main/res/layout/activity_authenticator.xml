@@ -23,6 +23,8 @@
 
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -32,19 +34,20 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/separation"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        tools:ignore="UseCompoundDrawables">
 
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="@dimen/distance_from_edge"
+            android:layout_marginStart="@dimen/distance_from_edge"
             android:contentDescription="@string/amproid_logo_description"
-            android:src="@drawable/ic_launcher" />
+            app:srcCompat="@drawable/ic_launcher" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="@dimen/distance_between"
+            android:layout_marginStart="@dimen/distance_between"
             android:text="@string/account_select_label"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
@@ -55,8 +58,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginRight="@dimen/distance_from_edge"
         android:layout_marginTop="@dimen/separation"
-        android:layout_marginRight="@dimen/distance_from_edge" />
+        android:layout_marginBottom="@dimen/distance_between"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -67,7 +71,7 @@
             android:id="@+id/add_account_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="@dimen/distance_from_edge"
+            android:layout_marginStart="@dimen/distance_from_edge"
             android:layout_marginTop="@dimen/distance_between"
             android:text="@string/account_add_button_label" />
 
@@ -75,7 +79,7 @@
             android:id="@+id/manage_account_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="@dimen/distance_between"
+            android:layout_marginStart="@dimen/distance_between"
             android:layout_marginTop="@dimen/distance_between"
             android:text="@string/account_manage_button_label" />
 
@@ -89,19 +93,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/distance_between"
-            android:layout_marginRight="@dimen/distance_from_edge"
+            android:layout_marginEnd="@dimen/distance_from_edge"
             android:text="@string/account_select_button_label" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/clear_text_warning"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/separation"
-        android:layout_marginRight="@dimen/distance_from_edge"
-        android:text="@string/clear_text_warning"
-        android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -109,16 +103,11 @@
         android:gravity="bottom"
         android:orientation="horizontal">
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
         <Button
             android:id="@+id/cancel_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_from_edge"
+            android:layout_marginStart="@dimen/distance_from_edge"
             android:layout_marginBottom="@dimen/separation"
             android:text="@string/cancel" />
 

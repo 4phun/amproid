@@ -22,6 +22,12 @@
 
 package com.pppphun.amproid;
 
+import static android.accounts.AccountManager.KEY_ACCOUNT_NAME;
+import static android.accounts.AccountManager.KEY_ACCOUNT_TYPE;
+import static android.accounts.AccountManager.KEY_AUTHTOKEN;
+import static android.accounts.AccountManager.KEY_ERROR_CODE;
+import static android.accounts.AccountManager.KEY_ERROR_MESSAGE;
+
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
@@ -30,11 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
-import static android.accounts.AccountManager.KEY_ACCOUNT_NAME;
-import static android.accounts.AccountManager.KEY_ACCOUNT_TYPE;
-import static android.accounts.AccountManager.KEY_AUTHTOKEN;
-import static android.accounts.AccountManager.KEY_ERROR_CODE;
-import static android.accounts.AccountManager.KEY_ERROR_MESSAGE;
+import com.pppphun.amproid.service.AmpacheAPICaller;
 
 
 public class AmproidAuthenticator extends AbstractAccountAuthenticator
@@ -61,7 +63,6 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
     {
         Bundle returnValue = new Bundle();
 
-        // create intent to open the authenticator activity, see also AmproidService's AmproidAccountManagerCallback class
         final Intent intent = new Intent(context, AmproidAuthenticatorActivity.class);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         intent.putExtra(KEY_ACCOUNT_TYPE, accountType);
@@ -86,14 +87,12 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
     {
         Bundle returnValue = new Bundle();
 
-        // just to make sure we're on the right page
         if (account.type.compareTo(context.getString(R.string.account_type)) != 0) {
             returnValue.putString(KEY_ERROR_CODE, "0001");
             returnValue.putString(KEY_ERROR_MESSAGE, context.getString(R.string.error_account_type_mismatch));
             return returnValue;
         }
 
-        // get credentials
         String url  = null;
         String user = "";
         String psw  = "";
@@ -105,20 +104,17 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
                 user = accountManager.getUserData(account, "user");
                 psw  = accountManager.getPassword(account);
             }
-            catch (Exception e) {
-                // nothing much can be done here
+            catch (Exception ignored) {
             }
         }
 
         String token = "";
 
-        // send request to server and get response
         AmpacheAPICaller ampacheAPICaller = new AmpacheAPICaller(url);
         if (ampacheAPICaller.getErrorMessage().isEmpty()) {
             token = ampacheAPICaller.handshake(user, psw);
         }
 
-        // add error message to return value if there is one
         if (!ampacheAPICaller.getErrorMessage().isEmpty()) {
             if (ampacheAPICaller.isLoginShouldRetry()) {
                 returnValue.putString(KEY_ERROR_CODE, "0001");
@@ -129,7 +125,6 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
             returnValue.putString(KEY_ERROR_MESSAGE, ampacheAPICaller.getErrorMessage());
         }
 
-        // add data to return value
         returnValue.putString(KEY_ACCOUNT_NAME, account.name);
         returnValue.putString(KEY_ACCOUNT_TYPE, account.type);
         returnValue.putString(KEY_AUTHTOKEN, token);
@@ -157,5 +152,4 @@ public class AmproidAuthenticator extends AbstractAccountAuthenticator
     {
         return null;
     }
-
 }

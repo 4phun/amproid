@@ -21,91 +21,79 @@
   ~ along with Amproid. If not, see http://www.gnu.org/licenses/
   -->
 
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/mainLayout"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_marginLeft="@dimen/distance_from_edge"
-    android:layout_marginTop="@dimen/distance_from_edge"
-    android:layout_marginRight="@dimen/distance_from_edge"
-    android:layout_marginBottom="@dimen/distance_from_edge"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_alignParentTop="true"
+        app:tabMode="auto">
 
-        <LinearLayout
-            android:id="@+id/titles"
+        <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minHeight="@dimen/image_size"
-            android:orientation="vertical">
+            android:tag="@string/fragment_tag_now_playing"
+            android:text="@string/now_playing" />
 
-            <TextView
-                android:id="@+id/title"
-                style="@android:style/TextAppearance.Medium"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:scrollHorizontally="false"
-                android:text="@string/title"
-                android:textStyle="bold" />
+    </com.google.android.material.tabs.TabLayout>
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <TextView
-                android:id="@+id/artist"
-                style="@android:style/TextAppearance.Medium"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:scrollHorizontally="false"
-                android:text="@string/artist" />
-
-            <TextView
-                android:id="@+id/album"
-                style="@android:style/TextAppearance.Small"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="3"
-                android:scrollHorizontally="false"
-                android:text="@string/album" />
-
-        </LinearLayout>
-
-
-        <ImageView
-            android:id="@+id/art"
-            android:layout_width="@dimen/image_size"
-            android:layout_height="@dimen/image_size"
-            android:layout_marginLeft="@dimen/distance_between"
-            android:contentDescription="@string/art"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_launcher" />
-
-    </LinearLayout>
-
-    <SeekBar
-        android:id="@+id/positionIndicator"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/distance_between"
-        android:thumb="@null" />
+        android:layout_height="match_parent"
+        android:layout_above="@id/controls"
+        android:layout_below="@+id/tabs">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/fragment_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ProgressBar
+            android:id="@+id/loading"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
+        android:id="@+id/controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:layout_marginTop="@dimen/distance_between"
-        android:orientation="horizontal">
+        android:layout_marginBottom="@dimen/distance_from_edge">
+
+        <ImageButton
+            android:id="@+id/playButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/distance_from_edge"
+            android:layout_marginEnd="@dimen/distance_between"
+            android:contentDescription="@string/play"
+            android:src="@android:drawable/ic_media_play" />
+
+        <ImageButton
+            android:id="@+id/pauseButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/distance_between"
+            android:contentDescription="@string/pause"
+            android:src="@android:drawable/ic_media_pause" />
 
         <Space
             android:layout_width="match_parent"
@@ -116,55 +104,47 @@
             android:id="@+id/prevButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="@dimen/distance_between"
+            android:background="#00000000"
             android:contentDescription="@string/prev"
             android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_media_previous" />
-
-        <ImageButton
-            android:id="@+id/playButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
-            android:contentDescription="@string/play"
-            android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_media_play" />
-
-        <ImageButton
-            android:id="@+id/pauseButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
-            android:contentDescription="@string/pause"
-            android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_media_pause" />
+            app:srcCompat="@android:drawable/ic_media_previous" />
 
         <ImageButton
             android:id="@+id/nextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/distance_between"
+            android:layout_marginEnd="@dimen/distance_between"
+            android:background="#00000000"
             android:contentDescription="@string/next"
             android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_media_next" />
+            app:srcCompat="@android:drawable/ic_media_next" />
 
         <ImageButton
             android:id="@+id/searchButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/distance_between"
+            android:layout_marginEnd="@dimen/distance_between"
+            android:background="#00000000"
             android:contentDescription="@string/search"
             android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_menu_search" />
+            app:srcCompat="@android:drawable/ic_menu_search"/>
 
         <ImageButton
             android:id="@+id/stopButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="@dimen/distance_between"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/distance_between"
+            android:background="#00000000"
             android:contentDescription="@string/stop"
             android:padding="@dimen/zero"
-            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+            app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
 
         <Space
             android:layout_width="match_parent"
@@ -173,26 +153,4 @@
 
     </LinearLayout>
 
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="@dimen/separation">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/browser"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <ProgressBar
-            android:id="@+id/loading"
-            style="?android:attr/progressBarStyleLarge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            android:visibility="gone" />
-
-    </FrameLayout>
-
-</LinearLayout>
+</RelativeLayout>
