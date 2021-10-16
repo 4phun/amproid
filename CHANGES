@@ -1,3 +1,10 @@
+2.0 - 2021-10-15
+    Minimum Android version is now 9 Pie
+    Replaced/rewrote deprecated Android API usages
+    Overhauled UI
+    Simplified navigation
+    Dedicated "Now Playing" tab
+
 1.13 - 2020-12-06
     Workaround for "limit=none" bug in Ampache API 4.2.5
     Caching playlist names

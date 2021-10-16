@@ -1,7 +1,7 @@
 /*
  * This file is part of Amproid
  *
- * Copyright (c) 2021. Peter Papp
+ * Copyright (c) 2019. Peter Papp
  *
  * Please visit https://github.com/4phun/Amproid for details
  *
