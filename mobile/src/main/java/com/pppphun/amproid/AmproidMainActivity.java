@@ -357,6 +357,35 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
+    public void menuQSG(MenuItem menuItem)
+    {
+        SpannableString qsg = new SpannableString(getString(R.string.qsg_text));
+
+        Linkify.addLinks(qsg, Linkify.WEB_URLS);
+
+        View view = getLayoutInflater().inflate(R.layout.dialog_qsg, null);
+
+        TextView qsgText = view.findViewById(R.id.qsg_text);
+        qsgText.setText(qsg);
+        qsgText.setMovementMethod(LinkMovementMethod.getInstance());
+
+        AlertDialog.Builder qsgDialogBuilder = new AlertDialog.Builder(AmproidMainActivity.this)
+                .setTitle(getString(R.string.qsg))
+                .setView(view)
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
+                        {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which)
+                            {
+                                dialog.cancel();
+                            }
+                        }
+                );
+
+        qsgDialogBuilder.show();
+    }
+
+
     @Override
     public void onCreate(Bundle savedInstanceState)
     {

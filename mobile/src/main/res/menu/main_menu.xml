@@ -37,6 +37,10 @@
         android:title="@string/accounts" />
 
     <item
+        android:onClick="menuQSG"
+        android:title="@string/qsg" />
+
+    <item
         android:onClick="menuAbout"
         android:title="@string/about" />
 

@@ -91,4 +91,9 @@
         android:text="@string/album"
         android:gravity="center" />
 
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
 </LinearLayout>

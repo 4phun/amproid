@@ -24,12 +24,10 @@
 
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- general -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="unknown">Unknown</string>
 
-    <!-- accounts -->
     <string name="account_add_button_label">Add</string>
     <string name="account_add_dialog_title">Add account</string>
     <string name="account_manage_button_label">Manage</string>
@@ -40,41 +38,33 @@
     <string name="user_input_label">User name</string>
     <string name="search_label">Search for</string>
 
-    <!-- login / logout -->
     <string name="clear_text_warning">Note: only secure \"https://\" connections allowed.</string>
 
-    <!-- track properties -->
     <string name="title">Title</string>
     <string name="artist">Artist</string>
     <string name="art">Art</string>
 
-    <!-- actions -->
     <string name="prev">Previous</string>
     <string name="search">Search</string>
     <string name="refresh">Refresh</string>
 
-    <!-- menu, tabs, and related -->
     <string name="accounts">Accounts</string>
     <string name="about">About</string>
     <string name="about_title">Amproid v%s</string>
     <string name="about_text" tools:ignore="PluralsCandidate">Ampache client for Android\n\nCopyright © 2019-%d Peter Papp\n\nhttps://github.com/4phun/Amproid"</string>
     <string name="now_playing">Now Playing</string>
+    <string name="qsg">Quick Start Guide</string>
 
-    <!-- equalizer -->
     <string name="equalizer">Equalizer</string>
     <string name="loudness">Loudness</string>
 
-    <!-- options -->
     <string name="hide_dot_playlists">Hide playlists whose name starts with a dot</string>
 
-    <!-- browsing & searching-->
     <string name="tracks">Tracks</string>
 
-    <!-- error messages -->
     <string name="error_invalid_user_input">Invalid data entered</string>
     <string name="error_search_input_insufficient">Search expression too short. Minimum 3 characters needed.</string>
 
-    <!-- license -->
     <string name="license"><![CDATA[
 Licensing
 \n\n
@@ -90,6 +80,50 @@ GNU General Public License for more details.
 \n\n
 You should have received a copy of the GNU General Public License
 along with Amproid. If not, see http://www.gnu.org/licenses/
+    ]]></string>
+
+    <string name="qsg_text"><![CDATA[
+Amproid is an independently developed audio client for the
+Ampache (https://ampache.org) media server. It is NOT a
+streaming service. To use Amproid, it must be connected to your
+Ampache instance.
+\n\n\n
+Connecting to your Ampache server
+\n\n
+When you first start Amproid, the Add Account dialog is displayed
+automatically. Otherwise, tap Accounts in the menu, then tap Add.
+Enter the server\'s URL, your user name, and your password, followed
+by OK. Amproid attempts to connect to the server immediately.
+Passwords are stored securely in Android’s Account manager.
+\n\n\n
+Exploring and playing content
+\n\n
+Amproid provides four tabs to help you explore the contents on your
+Ampache server:
+\n\n
+For You offers recommendations based on your favorites and your
+listening history. You can tap the refresh button to get a new set of
+recommendations.
+\n\n
+Search Results displays the results of your last search. You can search
+either by tapping the magnifying glass icon, or using Google Assistant.
+In the latter case, Amproid automatically starts playing a close match
+when the search completes.
+\n\n
+Playlists shows all playlists and smart list created on your server.
+When you first click this tab, Amproid downloads and caches this list.
+Tap the refresh button to have the list downloaded again, for example if
+you create a new playlist or smart list on your server.
+\n\n
+New shows a list of recently added albums.
+\n\n\n
+Now Playing
+\n\n
+This tab displays details of the currently playing track, such as the
+album art, title, artist, and album. When you’re playing an entire album
+or playlist, you can also tap the title to display the list of tracks,
+where you can tap a track to play it straight away.
+\n
     ]]></string>
 
 </resources>
