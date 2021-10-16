@@ -23,3 +23,5 @@
 !shared/src/main/**
 
 mobile/.gitignore
+service/.gitignore
+shared/.gitignore
