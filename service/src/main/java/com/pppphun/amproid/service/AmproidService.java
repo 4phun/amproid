@@ -572,7 +572,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                 return;
             }
         }
-        amproidServiceBinderCallback.refreshRootItemCompleted(rootItem);
+        notifyChildrenChanged(rootItem);
     }
 
 
@@ -950,14 +950,13 @@ public class AmproidService extends MediaBrowserServiceCompat
                 asyncProcessResultsGetTracks(arguments);
             }
             else if (asyncType == getResources().getInteger(R.integer.recommendations_now_valid)) {
-                if (amproidServiceBinderCallback != null) {
-                    amproidServiceBinderCallback.refreshRootItemCompleted(getString(R.string.item_recommendations_id));
-                }
+                notifyChildrenChanged(getString(R.string.item_recommendations_id));
             }
             else if (asyncType == getResources().getInteger(R.integer.search_now_valid)) {
                 if (mediaPlayer != null) {
                     genuineTrackMessage(mediaPlayer.getTrack());
                 }
+
                 if (searchParameters != null) {
                     String query = searchParameters.get("query").toString();
                     searchParameters = null;
@@ -997,14 +996,11 @@ public class AmproidService extends MediaBrowserServiceCompat
                         }
                     }
                 }
-                if (amproidServiceBinderCallback != null) {
-                    amproidServiceBinderCallback.refreshRootItemCompleted(getString(R.string.item_search_results_id));
-                }
+
+                notifyChildrenChanged(getString(R.string.item_search_results_id));
             }
             else if (asyncType == getResources().getInteger(R.integer.playlists_now_valid)) {
-                if (amproidServiceBinderCallback != null) {
-                    amproidServiceBinderCallback.refreshRootItemCompleted(getString(R.string.item_playlists_id));
-                }
+                notifyChildrenChanged(getString(R.string.item_playlists_id));
             }
             else if (asyncType == getResources().getInteger((R.integer.async_get_radios))) {
                 String errorMessage = arguments.getString("errorMessage", "");
@@ -1117,8 +1113,6 @@ public class AmproidService extends MediaBrowserServiceCompat
     public interface IAmproidServiceBinderCallback
     {
         void quitNow();
-
-        void refreshRootItemCompleted(String itemId);
 
         @SuppressWarnings("unused")
         void showToast(int stringResource);

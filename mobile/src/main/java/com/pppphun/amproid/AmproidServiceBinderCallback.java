@@ -24,7 +24,6 @@ package com.pppphun.amproid;
 
 import android.widget.Toast;
 
-import com.google.android.material.tabs.TabLayout;
 import com.pppphun.amproid.service.AmproidService;
 
 
@@ -43,24 +42,6 @@ public class AmproidServiceBinderCallback implements AmproidService.IAmproidServ
     public void quitNow()
     {
         mainActivity.finish();
-    }
-
-
-    @Override
-    public void refreshRootItemCompleted(String itemId)
-    {
-        TabLayout tabs = mainActivity.findViewById(R.id.tabs);
-        if ((tabs != null) && (tabs.getSelectedTabPosition() != 0)) {
-            String tag = null;
-            try {
-                tag = (String) tabs.getTabAt(tabs.getSelectedTabPosition()).getTag();
-            }
-            catch (Exception ignored) {
-            }
-            if ((tag != null) && (tag.compareTo(itemId) == 0)) {
-                mainActivity.mediaBrowserSubscribe(itemId);
-            }
-        }
     }
 
 
