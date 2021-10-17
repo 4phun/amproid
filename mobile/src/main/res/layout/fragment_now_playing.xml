@@ -39,7 +39,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/split"
-        android:thumb="@null" />
+        android:thumb="@null"
+        android:contentDescription="@string/seek_bar_label"/>
 
     <Space
         android:layout_width="match_parent"

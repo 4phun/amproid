@@ -37,6 +37,7 @@
     <string name="url_input_label">Ampache server URL</string>
     <string name="user_input_label">User name</string>
     <string name="search_label">Search for</string>
+    <string name="seek_bar_label">Seek Bar</string>
 
     <string name="clear_text_warning">Note: only secure \"https://\" connections allowed.</string>
 
