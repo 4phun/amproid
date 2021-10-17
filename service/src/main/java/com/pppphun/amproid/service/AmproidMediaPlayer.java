@@ -121,8 +121,14 @@ final class AmproidMediaPlayer extends MediaPlayer
             public void onCompletion(MediaPlayer mp)
             {
                 // make sure it actually played
-                if (getCurrentPosition() <= 0) {
-                    amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, getCurrentPosition());
+                int currentPosition = 0;
+                try {
+                    currentPosition = getCurrentPosition();
+                }
+                catch (Exception ignored) {
+                }
+                if (currentPosition <= 0) {
+                    amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
                     amproidService.fakeTrackMessage(R.string.error_error, amproidService.getString(erred ? errorResource : R.string.error_play_error));
                     return;
                 }
