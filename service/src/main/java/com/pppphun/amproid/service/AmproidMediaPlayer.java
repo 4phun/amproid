@@ -415,29 +415,60 @@ final class AmproidMediaPlayer extends MediaPlayer
     void setEffects()
     {
         if ((equalizer != null) && (amproidService.equalizerSettings != null) && (amproidService.equalizerSettings.numBands == equalizer.getNumberOfBands())) {
-
             short minLevel = equalizer.getBandLevelRange()[0];
             short maxLevel = equalizer.getBandLevelRange()[1];
 
-            for (int i = 0; i < amproidService.equalizerSettings.numBands; i++) {
-                short level = amproidService.equalizerSettings.bandLevels[i];
+            boolean OK       = false;
+            int     attempts = 0;
+            while (!OK && (attempts < 5)) {
+                OK = true;
+                for (int i = 0; i < amproidService.equalizerSettings.numBands; i++) {
+                    short level = amproidService.equalizerSettings.bandLevels[i];
 
-                if (level < minLevel) {
-                    level = minLevel;
-                }
-                if (level > maxLevel) {
-                    level = maxLevel;
-                }
+                    if (level < minLevel) {
+                        level = minLevel;
+                    }
+                    if (level > maxLevel) {
+                        level = maxLevel;
+                    }
 
-                equalizer.setBandLevel((short) i, level);
+                    try {
+                        equalizer.setBandLevel((short) i, level);
+                    }
+                    catch (Exception e) {
+                        OK = false;
+                        SystemClock.sleep(50);
+                        break;
+                    }
+                }
+                if (OK) {
+                    try {
+                        equalizer.setEnabled(true);
+                    }
+                    catch (Exception e) {
+                        OK = false;
+                        SystemClock.sleep(50);
+                    }
+                }
+                attempts++;
             }
-
-            equalizer.setEnabled(true);
         }
 
         if (loudnessEnhancer != null) {
-            loudnessEnhancer.setTargetGain(track.isRadio() ? Math.max(0, amproidService.loudnessGainSetting - 600) : amproidService.loudnessGainSetting);
-            loudnessEnhancer.setEnabled(true);
+            boolean OK       = false;
+            int     attempts = 0;
+            while (!OK && (attempts < 5)) {
+                OK = true;
+                try {
+                    loudnessEnhancer.setTargetGain(track.isRadio() ? Math.max(0, amproidService.loudnessGainSetting - 600) : amproidService.loudnessGainSetting);
+                    loudnessEnhancer.setEnabled(true);
+                }
+                catch (Exception e) {
+                    OK = false;
+                    SystemClock.sleep(50);
+                }
+                attempts++;
+            }
         }
     }
 
