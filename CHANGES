@@ -1,3 +1,14 @@
+2.0.3 - 2021-11-05
+    Improved Google Assistant support
+
+2.0.2 - 2021-10-29
+    Ampache 5.0.0 compatibilty: tags vs. genres
+    Reconnect when token expires
+    "For You" now contains genres too
+    New option: "For You" Mode
+    Shuffle takes genre into account; songs are played in blocks of 2-5
+    Minor UI updates
+
 2.0.1 - 2021-10-19
     Bugfix: RuntimeException on LoudnessEnhancer.setTargetGain
 
