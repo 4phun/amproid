@@ -42,8 +42,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Vector;
+import java.util.function.Predicate;
 
 
 public class AmpacheAPICaller
@@ -53,6 +56,7 @@ public class AmpacheAPICaller
     public static final int SEARCH_RESULTS_ARTIST_ALBUMS = 3;
     public static final int SEARCH_RESULTS_ARTISTS       = 4;
     public static final int SEARCH_RESULTS_PLAYLISTS     = 5;
+    public static final int SEARCH_RESULTS_ADVANCED      = 6;
 
     private static final int    SEARCH_MAX_SONGS   = 100;
     private static final int    SEARCH_MAX_ALBUMS  = 36;
@@ -68,6 +72,7 @@ public class AmpacheAPICaller
         GET_TRACKS_ID_TYPE_ARTIST,
         GET_TRACKS_ID_TYPE_ALBUM,
         GET_TRACKS_ID_TYPE_PLAYLIST,
+        GET_TRACKS_ID_TYPE_GENRE,
         GET_TRACKS_ID_TYPE_FLAGGED,
         GET_TRACKS_ID_TYPE_RECENTLY_PLAYED,
         GET_TRACKS_ID_TYPE_ANCIENTLY_PLAYED,
@@ -367,6 +372,18 @@ public class AmpacheAPICaller
             queryString.addNameValue("action", "playlist_songs");
             queryString.addNameValue("filter", id);
         }
+        else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_GENRE) {
+            queryString.addNameValue("action", "advanced_search");
+            queryString.addNameValue("type", "song");
+            queryString.addNameValue("random", "1");
+
+            String[] tags = id.split(String.valueOf((char) 255));
+            for (int i = 0; i < tags.length; i++) {
+                queryString.addNameValue(String.format(Locale.US, "rule_%d", i + 1), "tag");
+                queryString.addNameValue(String.format(Locale.US, "rule_%d_operator", i + 1), "4");
+                queryString.addNameValue(String.format(Locale.US, "rule_%d_input", i + 1), tags[i]);
+            }
+        }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_SONG) {
             queryString.addNameValue("action", "song");
             queryString.addNameValue("filter", id);
@@ -381,6 +398,7 @@ public class AmpacheAPICaller
             queryString.addNameValue("random", "1");
             queryString.addNameValue("rule_1", "myplayed");
             queryString.addNameValue("rule_1_operator", "0");
+            queryString.addNameValue("rule_1_input", "true");
             queryString.addNameValue("rule_2", "last_play");
             queryString.addNameValue("rule_2_operator", "1");
             queryString.addNameValue("rule_2_input", "7");
@@ -391,6 +409,7 @@ public class AmpacheAPICaller
             queryString.addNameValue("random", "1");
             queryString.addNameValue("rule_1", "myplayed");
             queryString.addNameValue("rule_1_operator", "0");
+            queryString.addNameValue("rule_1_input", "true");
             queryString.addNameValue("rule_2", "last_play");
             queryString.addNameValue("rule_2_operator", "0");
             queryString.addNameValue("rule_2_input", "30");
@@ -401,6 +420,7 @@ public class AmpacheAPICaller
             queryString.addNameValue("random", "1");
             queryString.addNameValue("rule_1", "myplayed");
             queryString.addNameValue("rule_1_operator", "1");
+            queryString.addNameValue("rule_1_input", "true");
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_NONE) {
             queryString.addNameValue("action", "playlist_generate");
@@ -415,13 +435,18 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
+        String tagTag = "tag";
+        if (apiVersion >= 5000000) {
+            tagTag = "genre";
+        }
+
         Vector<String> tagsNeeded = new Vector<>();
         tagsNeeded.add("title");
         tagsNeeded.add("album");
         tagsNeeded.add("artist");
         tagsNeeded.add("url");
         tagsNeeded.add("art");
-        tagsNeeded.add("tag");
+        tagsNeeded.add(tagTag);
 
         Vector<HashMap<String, String>> results = blockingTransactionMulti(callUrl, "song", tagsNeeded);
 
@@ -458,8 +483,8 @@ public class AmpacheAPICaller
             track.setAlbum(result.get("album"));
             track.setArtist(result.get("artist"));
 
-            if (result.containsKey("tag")) {
-                track.addTags(result.get("tag"));
+            if (result.containsKey(tagTag)) {
+                track.addTags(result.get(tagTag));
             }
 
             returnValue.add(track);
@@ -560,7 +585,7 @@ public class AmpacheAPICaller
             return new HashMap<>();
         }
 
-        String query  = searchParameters.getString("query");
+        String query  = bundleGetString(searchParameters, "query");
         String artist = bundleGetString(searchParameters, "android.intent.extra.artist");
         String album  = bundleGetString(searchParameters, "android.intent.extra.album");
         String title  = bundleGetString(searchParameters, "android.intent.extra.title");
@@ -578,6 +603,53 @@ public class AmpacheAPICaller
         nameTagNeeded.add("art");
 
         URL url;
+
+        Vector<HashMap<String, String>> advanced = new Vector<>();
+        if ((title.length() > 0) && (artist.length() > 0)) {
+            QueryStringBuilder advancedQueryString = new QueryStringBuilder();
+            advancedQueryString.addNameValue("action", "advanced_search");
+            advancedQueryString.addNameValue("auth", token);
+            advancedQueryString.addNameValue("type", "song");
+            advancedQueryString.addNameValue("random", "1");
+            advancedQueryString.addNameValue("limit", String.valueOf(SEARCH_MAX_SONGS));
+            advancedQueryString.addNameValue("rule_1", "title");
+            advancedQueryString.addNameValue("rule_1_operator", "0");
+            advancedQueryString.addNameValue("rule_1_input", title);
+            advancedQueryString.addNameValue("rule_2", "artist");
+            advancedQueryString.addNameValue("rule_2_operator", "0");
+            advancedQueryString.addNameValue("rule_2_input", artist);
+            if (album.length() > 0) {
+                advancedQueryString.addNameValue("rule_3", "album");
+                advancedQueryString.addNameValue("rule_3_operator", "0");
+                advancedQueryString.addNameValue("rule_3_input", album);
+            }
+
+            try {
+                url = new URL(baseUrl.toString() + API_PATH + "?" + advancedQueryString.getQueryString());
+            }
+            catch (Exception e) {
+                errorMessage = e.getMessage();
+                return new HashMap<>();
+            }
+
+            advanced.addAll(blockingTransactionMulti(url, "song", titleTagNeeded));
+
+            if ((advanced.size() < 1) && (album.length() > 0)) {
+                advancedQueryString.removeName("rule_3");
+                advancedQueryString.removeName("rule_3_operator");
+                advancedQueryString.removeName("rule_3_input");
+
+                try {
+                    url = new URL(baseUrl.toString() + API_PATH + "?" + advancedQueryString.getQueryString());
+                }
+                catch (Exception e) {
+                    errorMessage = e.getMessage();
+                    return new HashMap<>();
+                }
+
+                advanced.addAll(blockingTransactionMulti(url, "song", titleTagNeeded));
+            }
+        }
 
         QueryStringBuilder artistQueryString = new QueryStringBuilder();
         artistQueryString.addNameValue("action", "artists");
@@ -653,11 +725,64 @@ public class AmpacheAPICaller
 
         Vector<HashMap<String, String>> songs = blockingTransactionMulti(url, "song", titleTagNeeded);
 
+        if ((songs.size() < 1) && (albums.size() < 1) && (artist_albums.size() < 1) && (artists.size() < 1)) {
+            Vector<String> toCheck = new Vector<>();
+
+            String[] pieces = query.split("\\s");
+            for (String piece : pieces) {
+                if ((piece.length() > 3) && (!toCheck.contains(piece))) {
+                    toCheck.add(piece);
+                }
+            }
+            pieces = title.split("\\s");
+            for (String piece : pieces) {
+                if ((piece.length() > 3) && (!toCheck.contains(piece))) {
+                    toCheck.add(piece);
+                }
+            }
+
+            toCheck.sort(new Comparator<String>()
+            {
+                @Override
+                public int compare(String o1, String o2)
+                {
+                    if (o1.length() == o2.length()) {
+                        return o1.compareTo(o2);
+                    }
+
+                    return Integer.compare(o2.length(), o1.length());
+                }
+            });
+
+            for (String check : toCheck) {
+                QueryStringBuilder checkQueryString = new QueryStringBuilder();
+                checkQueryString.addNameValue("action", "songs");
+                checkQueryString.addNameValue("auth", token);
+                checkQueryString.addNameValue("filter", check);
+                checkQueryString.addNameValue("limit", String.valueOf(SEARCH_MAX_SONGS));
+
+                try {
+                    url = new URL(baseUrl.toString() + API_PATH + "?" + checkQueryString.getQueryString());
+                }
+                catch (Exception e) {
+                    errorMessage = e.getMessage();
+                    return new HashMap<>();
+                }
+
+                songs.addAll(blockingTransactionMulti(url, "song", titleTagNeeded));
+
+                if (songs.size() > 0) {
+                    break;
+                }
+            }
+        }
+
         HashMap<Integer, Vector<HashMap<String, String>>> returnValue = new HashMap<>();
         returnValue.put(SEARCH_RESULTS_SONGS, songs);
         returnValue.put(SEARCH_RESULTS_ALBUMS, albums);
         returnValue.put(SEARCH_RESULTS_ARTIST_ALBUMS, artist_albums);
         returnValue.put(SEARCH_RESULTS_ARTISTS, artists);
+        returnValue.put(SEARCH_RESULTS_ADVANCED, advanced);
 
         return returnValue;
     }
@@ -716,6 +841,11 @@ public class AmpacheAPICaller
         try {
             // old version format: integer
             apiVersion = Integer.parseInt(apiVersionString);
+
+            // under some circumstances, 5.0.0 sends 500000
+            if ((apiVersion >= 500000) && (apiVersion < 1000000)) {
+                apiVersion *= 10;
+            }
         }
         catch (Exception e) {
             // new version format introduced at 5.0.0: string major.minor.patch
@@ -785,6 +915,18 @@ public class AmpacheAPICaller
                     if (tags.contains(currentElement)) {
                         results.put(currentElement, xmlPullParser.getText());
                     }
+                    else if ((currentElement.compareTo("error") == 0) || (currentElement.compareTo("errorMessage") == 0)) {
+                        String errorText = "";
+                        try {
+                            errorText = xmlPullParser.getText().trim();
+                        }
+                        catch (Exception ignored) {
+                        }
+                        if (errorText.length() > 0) {
+                            errorMessage = errorText;
+                            break;
+                        }
+                    }
                 }
                 xmlState = xmlPullParser.next();
             }
@@ -792,6 +934,7 @@ public class AmpacheAPICaller
         catch (Exception e) {
             errorMessage = e.getMessage();
         }
+
 
         return results;
     }
@@ -824,7 +967,8 @@ public class AmpacheAPICaller
             XmlPullParser xmlPullParser = xmlPullParserFactory.newPullParser();
             xmlPullParser.setInput(connection.getInputStream(), null);
 
-            String currentElement = "";
+            String currentElement   = "";
+            String currentErrorCode = "";
 
             int xmlState = xmlPullParser.getEventType();
             while (xmlState != XmlPullParser.END_DOCUMENT) {
@@ -837,6 +981,10 @@ public class AmpacheAPICaller
                     while (i < xmlPullParser.getAttributeCount()) {
                         if (xmlPullParser.getAttributeName(i).compareTo("id") == 0) {
                             id = String.valueOf(xmlPullParser.getAttributeValue(i));
+                            break;
+                        }
+                        else if ((currentElement.compareTo("error") == 0) && ((xmlPullParser.getAttributeName(i).compareTo("code") == 0) || (xmlPullParser.getAttributeName(i).compareTo("errorCode") == 0))) {
+                            currentErrorCode = String.valueOf(xmlPullParser.getAttributeValue(i));
                             break;
                         }
                         i++;
@@ -857,17 +1005,35 @@ public class AmpacheAPICaller
                     }
                 }
                 else if (xmlState == XmlPullParser.END_TAG) {
+                    if (currentElement.compareTo("error") == 0) {
+                        currentErrorCode = "";
+                    }
                     currentElement = "";
                 }
                 else if (xmlState == XmlPullParser.TEXT) {
                     if (subTags.contains(currentElement) && (subResults != null)) {
-                        if ((currentElement.compareTo("tag") == 0) && (subResults.containsKey(currentElement))) {
+                        if (((currentElement.compareTo("tag") == 0) || (currentElement.compareTo("genre") == 0)) && (subResults.containsKey(currentElement))) {
                             String tags = subResults.get(currentElement);
-                            tags = tags + "," + xmlPullParser.getText();
+                            tags = tags + (char) 255 + xmlPullParser.getText();
                             subResults.put(currentElement, tags);
                         }
                         else {
                             subResults.put(currentElement, xmlPullParser.getText());
+                        }
+                    }
+                    else if ((currentElement.compareTo("error") == 0) || (currentElement.compareTo("errorMessage") == 0)) {
+                        String errorText = "";
+                        try {
+                            errorText = xmlPullParser.getText().trim();
+                        }
+                        catch (Exception ignored) {
+                        }
+                        if (errorText.length() > 0) {
+                            // do not error on "not found", an empty set will be returned
+                            if ((currentErrorCode.compareTo("4704") != 0) && (currentErrorCode.compareTo("404") != 0)) {
+                                errorMessage = errorText;
+                                break;
+                            }
                         }
                     }
                 }
@@ -958,6 +1124,19 @@ public class AmpacheAPICaller
             }
 
             return returnValue;
+        }
+
+
+        void removeName(String name)
+        {
+            queryString.removeIf(new Predicate<String>()
+            {
+                @Override
+                public boolean test(String s)
+                {
+                    return s.startsWith(name + "=");
+                }
+            });
         }
     }
 }

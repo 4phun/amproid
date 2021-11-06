@@ -22,6 +22,7 @@
 package com.pppphun.amproid;
 
 
+import android.util.Log;
 import android.widget.Toast;
 
 import com.pppphun.amproid.service.AmproidService;
@@ -48,7 +49,26 @@ public class AmproidServiceBinderCallback implements AmproidService.IAmproidServ
     @Override
     public void showToast(int stringResource)
     {
-        Toast.makeText(mainActivity, mainActivity.getString(stringResource), Toast.LENGTH_LONG).show();
+        showToast(mainActivity.getString(stringResource));
+    }
+
+
+    @Override
+    public void showToast(String string)
+    {
+        try {
+            mainActivity.runOnUiThread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    Toast.makeText(mainActivity, string, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+        catch (Exception e) {
+            Log.i(mainActivity.getString(R.string.app_name), string);
+        }
     }
 
 

@@ -43,13 +43,17 @@ final class AmproidMediaPlayer extends MediaPlayer
     private static final int FADE_DIRECTION_NONE = 0;
     private static final int FADE_DIRECTION_IN   = 1;
     private static final int FADE_DIRECTION_OUT  = 2;
+
     Equalizer        equalizer        = null;
     LoudnessEnhancer loudnessEnhancer = null;
+
     private final AmproidService amproidService;
     private final Track          track;
+    private       boolean        prepared      = false;
     private       boolean        sought        = false;
     private       boolean        erred         = false;
     private       int            errorResource = R.string.error_error;
+    private       boolean        errorReAuth   = false;
 
     private Timer positionTimer;
 
@@ -102,6 +106,8 @@ final class AmproidMediaPlayer extends MediaPlayer
             @Override
             public void onPrepared(MediaPlayer mp)
             {
+                prepared = true;
+
                 if (autoStart) {
                     start();
                 }
@@ -129,7 +135,13 @@ final class AmproidMediaPlayer extends MediaPlayer
                 }
                 if (currentPosition <= 0) {
                     amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
-                    amproidService.fakeTrackMessage(R.string.error_error, amproidService.getString(erred ? errorResource : R.string.error_play_error));
+                    if (errorReAuth) {
+                        amproidService.getNewAuthToken(amproidService.getString(errorResource));
+                    }
+                    else {
+                        amproidService.fakeTrackMessage(R.string.error_play_error, amproidService.getString(R.string.error_error));
+                    }
+
                     return;
                 }
 
@@ -180,6 +192,10 @@ final class AmproidMediaPlayer extends MediaPlayer
                         break;
                     case MEDIA_ERROR_SERVER_DIED:
                         extraResource = R.string.media_error_server_died_str;
+                        break;
+                    case -2147483648:   // MEDIA_ERROR_SYSTEM ("session expired": the media player can not play the server's error message)
+                        extraResource = R.string.media_error_system;
+                        errorReAuth = true;
                         break;
                     case MEDIA_ERROR_TIMED_OUT:
                         extraResource = R.string.media_error_timed_out_str;
@@ -251,6 +267,10 @@ final class AmproidMediaPlayer extends MediaPlayer
     @Override
     public void start()
     {
+        if (!prepared) {
+            return;
+        }
+
         amproidService.genuineTrackMessage(track);
         amproidService.savePlayMode();
 
@@ -317,6 +337,8 @@ final class AmproidMediaPlayer extends MediaPlayer
     public void stop()
     {
         amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
+
+        prepared = false;
 
         try {
             super.stop();

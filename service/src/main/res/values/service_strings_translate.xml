@@ -31,16 +31,17 @@
     <!-- login / logout -->
     <string name="login_handshake">Handshake with server</string>
     <string name="login_delay">Delaying next login attempt…</string>
-    <string name="quitting">Quitting…</string>
     <string name="still_bound">The Amproid service cannot quit because other apps are still bound to it. Playback has been paused for your convenience.</string>
 
     <!-- browsing & searching-->
     <string name="item_recommendations_desc">For You</string>
+    <string name="item_recommendations_mode_desc">\"For You\" Mode</string>
     <string name="item_search_results_desc">Search Results</string>
     <string name="item_playlists_desc">Playlists</string>
     <string name="item_recent_desc">New</string>
     <string name="getting_playlist_tracks">Getting tracks in playlist…</string>
     <string name="getting_artist_tracks">Getting artist\'s tracks…</string>
+    <string name="getting_genre_tracks">Getting tracks of selected genre…</string>
     <string name="getting_album_tracks">Getting tracks in album…</string>
     <string name="getting_search_results">Searching…</string>
     <string name="up_one_level_songs">Back to albums</string>
@@ -49,6 +50,7 @@
     <string name="subtitle_album">album</string>
     <string name="subtitle_song">song</string>
     <string name="subtitle_playlist">playlist</string>
+    <string name="subtitle_genre">genre</string>
 
     <!-- error messages -->
     <string name="error_defective_albums">%d album(s) had invalid data</string>
@@ -73,6 +75,7 @@
     <string name="media_error_malformed_str">Bitstream is not conforming to the related coding standard or file spec</string>
     <string name="media_error_not_valid_for_progressive_playback_str">The video is streamed and its container is not valid for progressive playback</string>
     <string name="media_error_server_died_str">Media server died</string>
+    <string name="media_error_system">Low-level media system error</string>
     <string name="media_error_timed_out_str">Some operation takes too long to complete, usually more than 3–5 seconds</string>
     <string name="media_error_unsupported_str">Bitstream is conforming to the related coding standard or file spec, but the media framework does not support the feature</string>
     <string name="media_error_unknown_str">Unspecified media player error</string>

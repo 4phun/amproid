@@ -65,7 +65,7 @@ class ValidateTokenThread extends ThreadCancellable
         while (!isCancelled() && ((connectionStatus == CONNECTION_UNKNOWN) || (connectionStatus == CONNECTION_NONE))) {
             Bundle arguments = new Bundle();
             arguments.putLong("elapsedMS", System.currentTimeMillis() - checkStart);
-            Amproid.sendMessage(amproidServiceHandler, R.string.async_no_network_broadcast_action, arguments);
+            Amproid.sendMessage(amproidServiceHandler, R.string.msg_async_no_network, arguments);
 
             SystemClock.sleep(1000);
 

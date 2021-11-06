@@ -93,20 +93,25 @@ public class SearchCache
                             searchThread = null;
                         }
 
-                        String errorMessage = arguments.getString("errorMessage", "");
-                        if (errorMessage.isEmpty()) {
-                            @SuppressWarnings("unchecked")
-                            HashMap<Integer, Vector<HashMap<String, String>>> results = (HashMap<Integer, Vector<HashMap<String, String>>>) arguments.getSerializable("found");
-                            if (results != null) {
-                                synchronized (this) {
-                                    SearchCache.this.searchResults = results;
-                                    valid                          = true;
-                                }
-                                sendResultToSend();
-                                if ((amproidServiceHandler != null) && sendValidMsg) {
-                                    sendValidMsg = false;
-                                    Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.search_now_valid, (Bundle) null);
-                                }
+                        String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
+                        if (!errorMessage.isEmpty()) {
+                            if (amproidServiceHandler != null) {
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                            }
+                            return;
+                        }
+
+                        @SuppressWarnings("unchecked")
+                        HashMap<Integer, Vector<HashMap<String, String>>> results = (HashMap<Integer, Vector<HashMap<String, String>>>) arguments.getSerializable("found");
+                        if (results != null) {
+                            synchronized (this) {
+                                SearchCache.this.searchResults = results;
+                                valid                          = true;
+                            }
+                            sendResultToSend();
+                            if ((amproidServiceHandler != null) && sendValidMsg) {
+                                sendValidMsg = false;
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.search_now_valid, (Bundle) null);
                             }
                         }
                     }
@@ -116,13 +121,15 @@ public class SearchCache
     };
 
 
-    public SearchCache(String authToken, String url, Handler amproidServiceHandler)
+    public SearchCache(String authToken, String url, Handler amproidServiceHandler, boolean autoPopulate)
     {
         this.authToken             = authToken;
         this.url                   = url;
         this.amproidServiceHandler = amproidServiceHandler;
 
-        doSearch(null);
+        if (autoPopulate) {
+            doSearch(null);
+        }
     }
 
 
@@ -149,13 +156,13 @@ public class SearchCache
     }
 
 
-    public Vector<HashMap<String, String>> getSearchResults()
+    public Vector<HashMap<String, String>> getSearchResults(boolean advancedOnly)
     {
         if (!isValid()) {
             return new Vector<>();
         }
 
-        return flatterSearchResults();
+        return flatterSearchResults(advancedOnly);
     }
 
 
@@ -194,7 +201,7 @@ public class SearchCache
     }
 
 
-    private Vector<HashMap<String, String>> flatterSearchResults()
+    private Vector<HashMap<String, String>> flatterSearchResults(boolean advancedOnly)
     {
         HashMap<Integer, Vector<HashMap<String, String>>> searchResults;
         synchronized (this) {
@@ -206,13 +213,20 @@ public class SearchCache
         // filter out duplicates
         Vector<String> addedIds = new Vector<>();
 
-        int[] processOrder = new int[]{
-                AmpacheAPICaller.SEARCH_RESULTS_PLAYLISTS,
-                AmpacheAPICaller.SEARCH_RESULTS_ARTISTS,
-                AmpacheAPICaller.SEARCH_RESULTS_ALBUMS,
-                AmpacheAPICaller.SEARCH_RESULTS_SONGS,
-                AmpacheAPICaller.SEARCH_RESULTS_ARTIST_ALBUMS
-        };
+        int[] processOrder;
+        if (advancedOnly) {
+            processOrder = new int[]{AmpacheAPICaller.SEARCH_RESULTS_ADVANCED};
+        }
+        else {
+            processOrder = new int[]{
+                    AmpacheAPICaller.SEARCH_RESULTS_ADVANCED,
+                    AmpacheAPICaller.SEARCH_RESULTS_PLAYLISTS,
+                    AmpacheAPICaller.SEARCH_RESULTS_ARTISTS,
+                    AmpacheAPICaller.SEARCH_RESULTS_ALBUMS,
+                    AmpacheAPICaller.SEARCH_RESULTS_SONGS,
+                    AmpacheAPICaller.SEARCH_RESULTS_ARTIST_ALBUMS
+            };
+        }
         for (int type : processOrder) {
             Vector<HashMap<String, String>> items = searchResults.get(type);
             if (items == null) {
@@ -293,7 +307,7 @@ public class SearchCache
             return;
         }
 
-        Vector<HashMap<String, String>>         flatteredSearchResults = flatterSearchResults();
+        Vector<HashMap<String, String>>         flatteredSearchResults = flatterSearchResults(false);
         ArrayList<MediaBrowserCompat.MediaItem> results                = new ArrayList<>();
 
         for (HashMap<String, String> item : flatteredSearchResults) {

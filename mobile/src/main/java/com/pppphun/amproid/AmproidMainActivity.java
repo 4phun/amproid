@@ -39,6 +39,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
@@ -68,6 +69,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -332,6 +334,22 @@ public class AmproidMainActivity extends AppCompatActivity
         final CheckBox hideDotPlaylists = view.findViewById(R.id.hide_dot_playlists);
         hideDotPlaylists.setChecked(preferences.getBoolean(getString(R.string.dot_playlists_hide_preference), true));
 
+        final TypedArray recommendationsModes = getResources().obtainTypedArray(R.array.recommendations_modes);
+        String           forYouModeSetting    = preferences.getString(getString(R.string.recommendations_mode_preference), recommendationsModes.getString(0));
+
+        int forYouIndex = 0;
+        for (int i = 0; i < recommendationsModes.length(); i++) {
+            if (forYouModeSetting.compareTo(recommendationsModes.getString(i)) == 0) {
+                forYouIndex = i;
+                break;
+            }
+        }
+
+        recommendationsModes.recycle();
+
+        final Spinner forYouMode = view.findViewById(R.id.recommendations_mode);
+        forYouMode.setSelection(forYouIndex);
+
         builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
         {
             @SuppressLint("ApplySharedPref")
@@ -340,6 +358,7 @@ public class AmproidMainActivity extends AppCompatActivity
             {
                 SharedPreferences.Editor preferencesEditor = preferences.edit();
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
+                preferencesEditor.putString(getString(R.string.recommendations_mode_preference), forYouMode.getSelectedItem().toString());
                 preferencesEditor.commit();
             }
         });
@@ -568,14 +587,6 @@ public class AmproidMainActivity extends AppCompatActivity
     }
 
 
-    void mediaSessionUpdateDurationPosition()
-    {
-        if (amproidServiceBinder != null) {
-            amproidServiceBinder.getAmproidService().mediaSessionUpdateDurationPosition();
-        }
-    }
-
-
     void startAuthenticatorActivity()
     {
         Intent intent = new Intent(this, AmproidAuthenticatorActivity.class);
@@ -597,7 +608,9 @@ public class AmproidMainActivity extends AppCompatActivity
                 .replace(R.id.fragment_container, NowPlayingFragment.class, null, getString(R.string.fragment_tag_now_playing))
                 .commit();
 
-        mediaSessionUpdateDurationPosition();
+        if (amproidServiceBinder != null) {
+            amproidServiceBinder.getAmproidService().mediaSessionUpdateDurationPosition(true);
+        }
     }
 
 

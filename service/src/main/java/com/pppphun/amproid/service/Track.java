@@ -60,13 +60,13 @@ public class Track
     }
 
 
-    public void addTags(String csvTags)
+    public void addTags(String twofiftyfiveSeparatedTags)
     {
-        if (csvTags == null) {
+        if (twofiftyfiveSeparatedTags == null) {
             return;
         }
 
-        String[] tags = csvTags.split(",");
+        String[] tags = twofiftyfiveSeparatedTags.split(String.valueOf((char) 255));
         this.tags.addAll(Arrays.asList(tags));
     }
 

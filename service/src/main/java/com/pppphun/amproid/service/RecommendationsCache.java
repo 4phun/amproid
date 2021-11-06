@@ -24,6 +24,7 @@ package com.pppphun.amproid.service;
 
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ARTIST;
+import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
 
 import android.content.Context;
@@ -40,6 +41,8 @@ import androidx.media.MediaBrowserServiceCompat;
 
 import com.pppphun.amproid.shared.Amproid;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -58,6 +61,7 @@ public class RecommendationsCache
     private Vector<HashMap<String, String>> artists   = new Vector<>();
     private Vector<HashMap<String, String>> albums    = new Vector<>();
     private Vector<HashMap<String, String>> playlists = new Vector<>();
+    private Vector<String>                  genres    = new Vector<>();
 
     private boolean valid        = false;
     private boolean sendValidMsg = false;
@@ -94,26 +98,35 @@ public class RecommendationsCache
                             getRecommendationsThread = null;
                         }
 
-                        String errorMessage = arguments.getString("errorMessage", "");
-                        if (errorMessage.isEmpty()) {
-                            @SuppressWarnings("unchecked")
-                            Vector<HashMap<String, String>> artists = (Vector<HashMap<String, String>>) arguments.getSerializable("artists");
-                            @SuppressWarnings("unchecked")
-                            Vector<HashMap<String, String>> albums = (Vector<HashMap<String, String>>) arguments.getSerializable("albums");
-                            @SuppressWarnings("unchecked")
-                            Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
-                            if ((artists != null) && (albums != null) && (playlists != null)) {
-                                synchronized (this) {
-                                    RecommendationsCache.this.artists   = artists;
-                                    RecommendationsCache.this.albums    = albums;
-                                    RecommendationsCache.this.playlists = playlists;
-                                    valid                               = true;
-                                }
-                                sendResultToSend();
-                                if ((amproidServiceHandler != null) && sendValidMsg) {
-                                    sendValidMsg = false;
-                                    Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, (Bundle) null);
-                                }
+                        String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
+                        if (!errorMessage.isEmpty()) {
+                            if (amproidServiceHandler != null) {
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                            }
+                            return;
+                        }
+
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> artists = (Vector<HashMap<String, String>>) arguments.getSerializable("artists");
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> albums = (Vector<HashMap<String, String>>) arguments.getSerializable("albums");
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
+                        @SuppressWarnings("unchecked")
+                        Vector<String> genres = (Vector<String>) arguments.getSerializable("genres");
+
+                        if ((artists != null) && (albums != null) && (playlists != null) && (genres != null)) {
+                            synchronized (this) {
+                                RecommendationsCache.this.artists   = artists;
+                                RecommendationsCache.this.albums    = albums;
+                                RecommendationsCache.this.playlists = playlists;
+                                RecommendationsCache.this.genres    = genres;
+                                valid                               = true;
+                            }
+                            sendResultToSend();
+                            if ((amproidServiceHandler != null) && sendValidMsg) {
+                                sendValidMsg = false;
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, (Bundle) null);
                             }
                         }
                     }
@@ -251,6 +264,23 @@ public class RecommendationsCache
                             MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
                     )
             );
+        }
+        for (String genre : genres) {
+            try {
+                results.add(
+                        new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(PREFIX_GENRE + URLEncoder.encode(genre, StandardCharsets.UTF_8.toString()))
+                                        .setTitle(genre)
+                                        .setSubtitle(Amproid.getAppContext().getString(R.string.subtitle_genre))
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        )
+                );
+            }
+            catch (Exception ignored) {
+                // in case UTF-8 is not supported, pretty much never happens with min SDK version being what it is
+            }
         }
 
         results.sort(new Comparator<MediaBrowserCompat.MediaItem>()

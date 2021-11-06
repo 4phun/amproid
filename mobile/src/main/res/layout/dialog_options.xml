@@ -22,21 +22,44 @@
   -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/AppDialogTheme"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    style="@style/AppDialogTheme">
+    android:orientation="vertical">
 
     <CheckBox
         android:id="@+id/hide_dot_playlists"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/distance_from_edge"
+        android:layout_marginStart="@dimen/distance_from_edge"
         android:layout_marginTop="@dimen/distance_between"
-        android:layout_marginRight="@dimen/distance_from_edge"
+        android:layout_marginEnd="@dimen/distance_from_edge"
         android:ellipsize="middle"
         android:maxLines="3"
         android:singleLine="false"
         android:text="@string/hide_dot_playlists" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:layout_marginEnd="@dimen/distance_from_edge"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="@dimen/distance_between"
+            android:text="@string/item_recommendations_mode_desc" />
+
+        <Spinner
+            android:id="@+id/recommendations_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:entries="@array/recommendations_modes" />
+
+    </LinearLayout>
 
 </LinearLayout>

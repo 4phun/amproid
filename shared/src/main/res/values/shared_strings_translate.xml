@@ -24,22 +24,17 @@
 
 <resources>
 
-    <!-- track properties -->
     <string name="album">Album</string>
 
-    <!-- actions -->
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="stop">Stop</string>
     <string name="next">Next</string>
 
-    <!-- equalizer -->
     <string name="eq">EQ</string>
 
-    <!-- options -->
     <string name="options">Options</string>
 
-    <!-- error messages -->
     <string name="error_account_type_mismatch">Account type mismatch</string>
     <string name="error_blank_token">Blank login token</string>
     <string name="error_invalid_credentials">Invalid login credentials</string>
@@ -47,5 +42,11 @@
     <string name="error_invalid_server_url">Invalid Ampache server URL</string>
     <string name="error_no_account_selection">No account selected</string>
     <string name="error_unsupported_api">Ampache API version %1$d not supported, minimum %2$d needed</string>
+
+    <string-array name="recommendations_modes">
+        <item>Adventurous</item>
+        <item>Balanced</item>
+        <item>Disciplined</item>
+    </string-array>
 
 </resources>

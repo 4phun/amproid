@@ -29,7 +29,7 @@
     <string name="auto_exited_broadcast_action">com.pppphun.amproid.AUTO_EXITED</string>
 
     <string name="msg_action_async_finished">async_finished</string>
-    <string name="async_no_network_broadcast_action">com.pppphun.amproid.ASYNC_NO_NETWORK</string>
+    <string name="msg_async_no_network">com.pppphun.amproid.ASYNC_NO_NETWORK</string>
 
     <string name="eq_preferences">eq</string>
     <string name="eq_settings_preference">eq_settings</string>
@@ -39,6 +39,7 @@
     <string name="play_mode_play_mode_preference">play_mode</string>
     <string name="play_mode_playlist_id_preference">playlist_id</string>
     <string name="play_mode_playlist_index_preference">playlist_index</string>
+    <string name="play_mode_genre_id_preference">genre_id</string>
     <string name="play_mode_browse_id_preference">radio_id</string>
     <string name="play_mode_artist_id_preference">artist_id</string>
     <string name="play_mode_album_id_preference">album_id</string>

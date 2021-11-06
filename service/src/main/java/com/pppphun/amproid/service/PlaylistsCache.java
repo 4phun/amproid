@@ -89,21 +89,26 @@ public class PlaylistsCache
                             getPlaylistsThread = null;
                         }
 
-                        String errorMessage = arguments.getString("errorMessage", "");
-                        if (errorMessage.isEmpty()) {
-                            @SuppressWarnings("unchecked")
-                            Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
-                            if (playlists != null) {
-                                synchronized (this) {
-                                    PlaylistsCache.this.playlists = playlists;
-                                    valid                         = true;
-                                }
-                                savePlaylists();
-                                sendResultToSend();
-                                if ((amproidServiceHandler != null) && sendValidMsg) {
-                                    sendValidMsg = false;
-                                    Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.playlists_now_valid, (Bundle) null);
-                                }
+                        String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
+                        if (!errorMessage.isEmpty()) {
+                            if (amproidServiceHandler != null) {
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                            }
+                            return;
+                        }
+
+                        @SuppressWarnings("unchecked")
+                        Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
+                        if (playlists != null) {
+                            synchronized (this) {
+                                PlaylistsCache.this.playlists = playlists;
+                                valid                         = true;
+                            }
+                            savePlaylists();
+                            sendResultToSend();
+                            if ((amproidServiceHandler != null) && sendValidMsg) {
+                                sendValidMsg = false;
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.playlists_now_valid, (Bundle) null);
                             }
                         }
                     }

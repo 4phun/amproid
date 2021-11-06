@@ -101,7 +101,7 @@ public class MediaBrowserFragment extends Fragment
                     if (action.equals(getString(R.string.msg_action_async_finished))) {
                         int asyncType = arguments.getInt(getString(R.string.msg_async_finished_type));
                         if (asyncType == getResources().getInteger(R.integer.async_image_downloader)) {
-                            String errorMessage = arguments.getString("errorMessage", "");
+                            String errorMessage = arguments.getString(getString(R.string.msg_error_message), "");
                             if (!errorMessage.isEmpty()) {
                                 return;
                             }
