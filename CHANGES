@@ -1,3 +1,6 @@
+2.0.5 - 2021-11-06
+    Scroll bar in browser fragment
+
 2.0.4 - 2021-11-06
     Bugfix: IllegalStateException in onSearch
 

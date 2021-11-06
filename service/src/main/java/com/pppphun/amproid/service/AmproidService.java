@@ -1077,18 +1077,30 @@ public class AmproidService extends MediaBrowserServiceCompat
                             }
 
                             String id = searchResults.get(matchIndex).get("id");
-                            if (id != null) {
-                                pausedByUser = false;
+                            pausedByUser = false;
+                            if (id == null) {
+                                if (playMode == PLAY_MODE_UNKNOWN) {
+                                    playMode = PLAY_MODE_RANDOM;
+                                }
+                                mediaSessionCallback.onSkipToNext();
+                            }
+                            else {
                                 mediaSessionCallback.onPlayFromMediaId(id, new Bundle());
                             }
                         }
                         else {
                             pausedByUser = false;
+                            if (playMode == PLAY_MODE_UNKNOWN) {
+                                playMode = PLAY_MODE_RANDOM;
+                            }
                             mediaSessionCallback.onSkipToNext();
                         }
                     }
                     else {
                         pausedByUser = false;
+                        if (playMode == PLAY_MODE_UNKNOWN) {
+                            playMode = PLAY_MODE_RANDOM;
+                        }
                         mediaSessionCallback.onSkipToNext();
                     }
                 }
