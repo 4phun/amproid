@@ -506,6 +506,8 @@ public class AmproidService extends MediaBrowserServiceCompat
     public void onSearch(@NonNull String query, Bundle extras, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result)
     {
         if (searchCache == null) {
+            ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
+            result.sendResult(results);
             return;
         }
 
@@ -751,7 +753,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         searchCache          = new SearchCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler, (searchParameters == null));
 
         if (searchParameters != null) {
-            // continued from onStartCommand or onPlayFromSearch
+            // continued from onStartCommand or onPlayFromSearch (wasn't logged in)
             mediaSessionCallback.onPlayFromSearch(Amproid.bundleGetString(searchParameters, "query"), searchParameters);
             return;
         }
@@ -1439,6 +1441,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (searchCache == null) {
+                // this onPlayFromSearch method will be called again after login to Ampache server
                 searchParameters = extras;
                 return;
             }
