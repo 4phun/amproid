@@ -29,9 +29,5 @@
     <string name="fragment_tag_now_playing">NowPlaying</string>
     <string name="fragment_tag_media_browser">MediaBrowser</string>
 
-    <string name="demo_address">https://develop.ampache.dev</string>
-    <string name="demo_user">demo</string>
-    <string name="demo_psw">demodemo</string>
-
 </resources>
 
