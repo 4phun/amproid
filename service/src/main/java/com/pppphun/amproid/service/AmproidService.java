@@ -260,7 +260,15 @@ public class AmproidService extends MediaBrowserServiceCompat
             return returnValue;
         }
 
-        Equalizer.Settings equalizerSettings = mediaPlayer.equalizer.getProperties();
+        Equalizer.Settings equalizerSettings;
+        float              loudnessGain;
+        try {
+            equalizerSettings = mediaPlayer.equalizer.getProperties();
+            loudnessGain      = mediaPlayer.loudnessEnhancer.getTargetGain();
+        }
+        catch (Exception e) {
+            return returnValue;
+        }
 
         int[] frequencies = new int[equalizerSettings.numBands];
         for (short i = 0; i < equalizerSettings.numBands; i++) {
@@ -271,7 +279,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         returnValue.putShort(getString(R.string.eq_key_min), mediaPlayer.equalizer.getBandLevelRange()[0]);
         returnValue.putShort(getString(R.string.eq_key_max), mediaPlayer.equalizer.getBandLevelRange()[1]);
         returnValue.putIntArray(getString(R.string.eq_key_freqs), frequencies);
-        returnValue.putFloat(getString(R.string.eq_key_loudness_gain), Math.round(mediaPlayer.loudnessEnhancer.getTargetGain()));
+        returnValue.putFloat(getString(R.string.eq_key_loudness_gain), Math.round(loudnessGain));
 
         return returnValue;
     }

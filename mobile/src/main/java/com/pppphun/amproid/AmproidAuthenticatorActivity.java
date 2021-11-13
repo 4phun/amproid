@@ -316,6 +316,7 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
 
             }
         });
+
         pswEditor.addTextChangedListener(new TextWatcher()
         {
             @Override

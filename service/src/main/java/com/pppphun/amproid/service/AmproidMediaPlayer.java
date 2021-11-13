@@ -26,7 +26,8 @@ import android.media.MediaPlayer;
 import android.media.audiofx.Equalizer;
 import android.media.audiofx.LoudnessEnhancer;
 import android.net.Uri;
-import android.os.SystemClock;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.media.session.PlaybackStateCompat;
 
 import java.net.URL;
@@ -36,7 +37,9 @@ import java.util.TimerTask;
 
 final class AmproidMediaPlayer extends MediaPlayer
 {
-    private static final int EQ_PRIORITY = 9;
+    private static final int EQ_PRIORITY   = 9;
+    private static final int MAX_ATTEMPTS  = 5;
+    private static final int ATTEMPT_DELAY = 50;
 
     private static final int FADE_DURATION       = 6000;
     private static final int FADE_FREQUENCY      = 40;
@@ -57,9 +60,117 @@ final class AmproidMediaPlayer extends MediaPlayer
 
     private Timer positionTimer;
 
+    private int effectsCreateAttempts = 0;
+    private int equalizerAttempts     = 0;
+    private int loudnessAttempts      = 0;
+
+    private final Handler playerHandler = new Handler(Looper.getMainLooper());
+
     private Timer fadeTimer     = null;
     private int   fadeDirection = FADE_DIRECTION_NONE;
     private float fadeValue     = 0;
+
+    private final Runnable setEqualizer = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            if ((equalizerAttempts < MAX_ATTEMPTS) && (equalizer != null) && (amproidService.equalizerSettings != null) && (amproidService.equalizerSettings.numBands == equalizer.getNumberOfBands())) {
+                equalizerAttempts++;
+
+                short minLevel = equalizer.getBandLevelRange()[0];
+                short maxLevel = equalizer.getBandLevelRange()[1];
+
+                for (int i = 0; i < amproidService.equalizerSettings.numBands; i++) {
+                    short level = amproidService.equalizerSettings.bandLevels[i];
+
+                    if (level < minLevel) {
+                        level = minLevel;
+                    }
+                    if (level > maxLevel) {
+                        level = maxLevel;
+                    }
+
+                    try {
+                        equalizer.setBandLevel((short) i, level);
+                    }
+                    catch (Exception e) {
+                        playerHandler.postDelayed(setEqualizer, ATTEMPT_DELAY);
+                        return;
+                    }
+                }
+
+                try {
+                    equalizer.setEnabled(true);
+                }
+                catch (Exception e) {
+                    playerHandler.postDelayed(setEqualizer, ATTEMPT_DELAY);
+                }
+            }
+        }
+    };
+
+    private final Runnable setLoudnessEnhancer = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            if ((loudnessAttempts < MAX_ATTEMPTS) && (loudnessEnhancer != null)) {
+                loudnessAttempts++;
+
+                try {
+                    loudnessEnhancer.setTargetGain(track.isRadio() ? Math.max(0, amproidService.loudnessGainSetting - 600) : amproidService.loudnessGainSetting);
+                    loudnessEnhancer.setEnabled(true);
+                }
+                catch (Exception e) {
+                    playerHandler.postDelayed(setLoudnessEnhancer, ATTEMPT_DELAY);
+                }
+            }
+        }
+    };
+
+    private final Runnable effectCreate = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            // multiple attempts because developer console reported IllegalStateException on getAudioSessionId even though this is called after onPrepared
+            if ((effectsCreateAttempts < MAX_ATTEMPTS) && ((equalizer == null) || (loudnessEnhancer == null))) {
+                effectsCreateAttempts++;
+
+                try {
+                    int audioSessionId = getAudioSessionId();
+                    if (audioSessionId != 0) {
+                        if (equalizer == null) {
+                            equalizer = new Equalizer(EQ_PRIORITY, audioSessionId);
+                        }
+                        if (loudnessEnhancer == null) {
+                            loudnessEnhancer = new LoudnessEnhancer(audioSessionId);
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    playerHandler.postDelayed(effectCreate, ATTEMPT_DELAY);
+                    return;
+                }
+
+                if (fadeDirection == FADE_DIRECTION_NONE) {
+                    setEffects();
+                }
+                else {
+                    // must be done after a delay, otherwise fade-in will have a short but very much audible burst before sound is silenced
+                    new Timer().schedule(new TimerTask()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            setEffects();
+                        }
+                    }, 80);
+                }
+            }
+        }
+    };
 
 
     AmproidMediaPlayer(AmproidService amproidService, Track track, final boolean autoStart)
@@ -271,6 +382,10 @@ final class AmproidMediaPlayer extends MediaPlayer
             return;
         }
 
+        effectsCreateAttempts = 0;
+        equalizerAttempts     = 0;
+        loudnessAttempts      = 0;
+
         amproidService.genuineTrackMessage(track);
         amproidService.savePlayMode();
 
@@ -286,44 +401,7 @@ final class AmproidMediaPlayer extends MediaPlayer
             return;
         }
 
-        if ((equalizer == null) || (loudnessEnhancer == null)) {
-            // multiple attempts because developer console reported IllegalStateException on getAudioSessionId
-            int audioSessionId = 0;
-            int attempts       = 0;
-            while ((audioSessionId == 0) && (attempts < 5)) {
-                try {
-                    audioSessionId = getAudioSessionId();
-                    if (audioSessionId != 0) {
-                        if (equalizer == null) {
-                            equalizer = new Equalizer(EQ_PRIORITY, audioSessionId);
-                        }
-                        if (loudnessEnhancer == null) {
-                            loudnessEnhancer = new LoudnessEnhancer(audioSessionId);
-                        }
-                    }
-                }
-                catch (Exception e) {
-                    SystemClock.sleep(50);
-                }
-                attempts++;
-            }
-
-            if (fadeDirection == FADE_DIRECTION_NONE) {
-                // must be done immediately to avoid changes in sound after playback has already started
-                setEffects();
-            }
-            else {
-                // must be done after a delay, otherwise fade-in will have a short but very much audible burst before sound is silenced
-                new Timer().schedule(new TimerTask()
-                {
-                    @Override
-                    public void run()
-                    {
-                        setEffects();
-                    }
-                }, 80);
-            }
-        }
+        playerHandler.post(effectCreate);
 
         if (fadeDirection == FADE_DIRECTION_IN) {
             startFade();
@@ -436,62 +514,8 @@ final class AmproidMediaPlayer extends MediaPlayer
 
     void setEffects()
     {
-        if ((equalizer != null) && (amproidService.equalizerSettings != null) && (amproidService.equalizerSettings.numBands == equalizer.getNumberOfBands())) {
-            short minLevel = equalizer.getBandLevelRange()[0];
-            short maxLevel = equalizer.getBandLevelRange()[1];
-
-            boolean OK       = false;
-            int     attempts = 0;
-            while (!OK && (attempts < 5)) {
-                OK = true;
-                for (int i = 0; i < amproidService.equalizerSettings.numBands; i++) {
-                    short level = amproidService.equalizerSettings.bandLevels[i];
-
-                    if (level < minLevel) {
-                        level = minLevel;
-                    }
-                    if (level > maxLevel) {
-                        level = maxLevel;
-                    }
-
-                    try {
-                        equalizer.setBandLevel((short) i, level);
-                    }
-                    catch (Exception e) {
-                        OK = false;
-                        SystemClock.sleep(50);
-                        break;
-                    }
-                }
-                if (OK) {
-                    try {
-                        equalizer.setEnabled(true);
-                    }
-                    catch (Exception e) {
-                        OK = false;
-                        SystemClock.sleep(50);
-                    }
-                }
-                attempts++;
-            }
-        }
-
-        if (loudnessEnhancer != null) {
-            boolean OK       = false;
-            int     attempts = 0;
-            while (!OK && (attempts < 5)) {
-                OK = true;
-                try {
-                    loudnessEnhancer.setTargetGain(track.isRadio() ? Math.max(0, amproidService.loudnessGainSetting - 600) : amproidService.loudnessGainSetting);
-                    loudnessEnhancer.setEnabled(true);
-                }
-                catch (Exception e) {
-                    OK = false;
-                    SystemClock.sleep(50);
-                }
-                attempts++;
-            }
-        }
+        playerHandler.post(setEqualizer);
+        playerHandler.post(setLoudnessEnhancer);
     }
 
 
