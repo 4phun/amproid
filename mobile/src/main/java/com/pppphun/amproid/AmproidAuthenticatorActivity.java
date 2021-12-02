@@ -44,6 +44,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -53,6 +54,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.textfield.TextInputEditText;
 import com.pppphun.amproid.service.AmproidService;
 
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -65,7 +67,6 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
     private Bundle                       accountAuthenticatorResult   = null;
 
     private AmproidService.AmproidServiceBinder amproidServiceBinder = null;
-
 
     private final ServiceConnection amproidServiceBindConnection = new ServiceConnection()
     {
@@ -287,6 +288,7 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
         final TextInputEditText urlEditor  = view.findViewById(R.id.url_input);
         final TextInputEditText userEditor = view.findViewById(R.id.user_input);
         final TextInputEditText pswEditor  = view.findViewById(R.id.psw_input);
+        final Button            demoButton = view.findViewById(R.id.use_demo_server);
 
         userEditor.addTextChangedListener(new TextWatcher()
         {
@@ -399,6 +401,17 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
             }
         });
 
+        demoButton.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                urlEditor.setText(getString(R.string.demo_address));
+                userEditor.setText(getString(R.string.demo_user));
+                pswEditor.setText(getString(R.string.demo_psw));
+            }
+        });
+
         builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener()
         {
             @Override
@@ -408,6 +421,76 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
             }
         });
 
-        builder.show();
+        AlertDialog addDialog = builder.create();
+
+        DemoAvailability demoAvailability = new DemoAvailability(addDialog);
+        demoAvailability.start();
+
+        addDialog.show();
+    }
+
+
+    class DemoAvailability extends Thread
+    {
+        private static final int DEMO_CONNECT_TIMEOUT = 20000;
+        private static final int DEMO_READ_TIMEOUT    = 1000;
+
+        private final AlertDialog addDialog;
+
+
+        public DemoAvailability(AlertDialog addDialog)
+        {
+            this.addDialog = addDialog;
+        }
+
+
+        @Override
+        public void run()
+        {
+            boolean result;
+            try {
+                URL url;
+                url = new URL(getString(R.string.demo_address));
+
+                HttpURLConnection connection;
+
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setInstanceFollowRedirects(false);
+                connection.setConnectTimeout(DEMO_CONNECT_TIMEOUT);
+                connection.setReadTimeout(DEMO_READ_TIMEOUT);
+                connection.setUseCaches(false);
+                connection.connect();
+
+                result = true;
+            }
+            catch (Exception e) {
+                result = false;
+            }
+
+            try {
+                boolean finalResult = result;
+                AmproidAuthenticatorActivity.this.runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        try {
+                            ProgressBar demoChecking = addDialog.findViewById(R.id.demo_availability_checking);
+                            Button      demoButton   = addDialog.findViewById(R.id.use_demo_server);
+
+                            demoChecking.setVisibility(View.GONE);
+                            if (finalResult) {
+                                demoButton.setVisibility(View.VISIBLE);
+                            }
+                        }
+                        catch (Exception ignored) {
+                        }
+                    }
+                });
+            }
+            catch (Exception ignored) {
+            }
+        }
     }
 }

@@ -33,6 +33,7 @@
     <string name="account_manage_button_label">Manage</string>
     <string name="account_select_button_label">Select</string>
     <string name="account_select_label">Select account</string>
+    <string name="account_demo_label">Use Demo Server</string>
     <string name="psw_input_label">Password</string>
     <string name="url_input_label">Ampache server URL</string>
     <string name="user_input_label">User name</string>
