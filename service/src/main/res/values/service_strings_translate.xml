@@ -34,6 +34,8 @@
     <string name="still_bound">The Amproid service cannot quit because other apps are still bound to it. Playback has been paused for your convenience.</string>
 
     <!-- browsing & searching-->
+    <string name="item_random_desc">Shuffle everything</string>
+    <string name="item_random_recent_desc">Shuffle new</string>
     <string name="item_recommendations_desc">For You</string>
     <string name="item_recommendations_mode_desc">\"For You\" Mode</string>
     <string name="item_search_results_desc">Search Results</string>
@@ -44,6 +46,7 @@
     <string name="getting_genre_tracks">Getting tracks of selected genre…</string>
     <string name="getting_album_tracks">Getting tracks in album…</string>
     <string name="getting_search_results">Searching…</string>
+    <string name="getting_recent_random">Getting recently added tracks…</string>
     <string name="up_one_level_songs">Back to albums</string>
     <string name="playlist_cache_refreshed">Playlist cache refreshed</string>
     <string name="subtitle_artist">artist</string>

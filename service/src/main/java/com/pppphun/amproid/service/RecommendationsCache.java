@@ -298,6 +298,16 @@ public class RecommendationsCache
             }
         });
 
+        results.add(0,
+                new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId(Amproid.getAppContext().getString(R.string.item_random_id))
+                                .setTitle(Amproid.getAppContext().getString(R.string.item_random_desc))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                )
+        );
+
         resultToSend.sendResult(results);
 
         synchronized (this) {

@@ -33,5 +33,6 @@
     <integer name="search_now_valid">107</integer>
     <integer name="async_get_recommendations">108</integer>
     <integer name="recommendations_now_valid">109</integer>
+    <integer name="async_get_recent_albums">110</integer>
 
 </resources>

@@ -29,6 +29,7 @@ import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_BROWSE;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_PLAYLIST;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_RANDOM;
+import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_RANDOM_RECENT;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_NONE;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_UNKNOWN;
 
@@ -106,8 +107,13 @@ public class GetTracksThread extends ThreadCancellable
 
                 randomGenresRemaining--;
                 if (randomGenresRemaining == 0) {
+                    randomGenresRemaining--;
                     randomGenres = "";
                 }
+            }
+            else if (randomGenresRemaining < 0) {
+                tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, randomGenres, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED));
+                randomGenresRemaining = 0;
             }
             else {
                 tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, null, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_NONE));
@@ -143,6 +149,10 @@ public class GetTracksThread extends ThreadCancellable
         }
         else if (playMode == PLAY_MODE_GENRE) {
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 7, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_GENRE));
+        }
+        else if (playMode == PLAY_MODE_RANDOM_RECENT) {
+            // note here id should contain the number of recent tracks to select from (how far to go back)
+            tracks.addAll(ampacheAPICaller.getTracks(authToken, 7, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED));
         }
 
         if (isCancelled()) {

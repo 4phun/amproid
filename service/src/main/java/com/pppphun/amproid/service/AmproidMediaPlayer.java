@@ -23,12 +23,17 @@ package com.pppphun.amproid.service;
 
 
 import android.media.MediaPlayer;
+import android.media.VolumeShaper;
 import android.media.audiofx.Equalizer;
 import android.media.audiofx.LoudnessEnhancer;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.support.v4.media.session.PlaybackStateCompat;
+
+import androidx.annotation.NonNull;
 
 import java.net.URL;
 import java.util.Timer;
@@ -41,11 +46,10 @@ final class AmproidMediaPlayer extends MediaPlayer
     private static final int MAX_ATTEMPTS  = 5;
     private static final int ATTEMPT_DELAY = 50;
 
-    private static final int FADE_DURATION       = 6000;
-    private static final int FADE_FREQUENCY      = 40;
-    private static final int FADE_DIRECTION_NONE = 0;
-    private static final int FADE_DIRECTION_IN   = 1;
-    private static final int FADE_DIRECTION_OUT  = 2;
+    private static final int  FADE_DURATION = 6000;
+    private static final byte FADE_NO       = 0;
+    private static final byte FADE_DO       = 1;
+    private static final byte FADE_DONE     = 2;
 
     Equalizer        equalizer        = null;
     LoudnessEnhancer loudnessEnhancer = null;
@@ -53,22 +57,41 @@ final class AmproidMediaPlayer extends MediaPlayer
     private final AmproidService amproidService;
     private final Track          track;
     private       boolean        prepared      = false;
-    private       boolean        sought        = false;
     private       boolean        erred         = false;
     private       int            errorResource = R.string.error_error;
-    private       boolean        errorReAuth   = false;
-
-    private Timer positionTimer;
 
     private int effectsCreateAttempts = 0;
     private int equalizerAttempts     = 0;
     private int loudnessAttempts      = 0;
 
-    private final Handler playerHandler = new Handler(Looper.getMainLooper());
+    private byte         fadeIn;
+    private byte         fadeOut;
+    private Timer        positionTimer;
+    private VolumeShaper fadeInShaper  = null;
+    private VolumeShaper fadeOutShaper = null;
 
-    private Timer fadeTimer     = null;
-    private int   fadeDirection = FADE_DIRECTION_NONE;
-    private float fadeValue     = 0;
+
+    private final Handler playerHandler = new Handler(Looper.getMainLooper())
+    {
+        @Override
+        public void handleMessage(@NonNull Message msg)
+        {
+            Bundle arguments = null;
+            try {
+                if (msg.obj instanceof Bundle) {
+                    arguments = (Bundle) msg.obj;
+                }
+            }
+            catch (Exception ignored) {
+            }
+
+            super.handleMessage(msg);
+
+            if (arguments != null) {
+                processMsg(arguments);
+            }
+        }
+    };
 
     private final Runnable setEqualizer = new Runnable()
     {
@@ -154,7 +177,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                     return;
                 }
 
-                if (fadeDirection == FADE_DIRECTION_NONE) {
+                if (fadeInShaper == null) {
                     setEffects();
                 }
                 else {
@@ -171,7 +194,6 @@ final class AmproidMediaPlayer extends MediaPlayer
             }
         }
     };
-
 
     AmproidMediaPlayer(AmproidService amproidService, Track track, final boolean autoStart)
     {
@@ -198,16 +220,18 @@ final class AmproidMediaPlayer extends MediaPlayer
                 catch (Exception e) {
                     return;
                 }
-                if ((position < 0) || (duration < 0)) {
+                if ((position <= 0) || (duration <= 0)) {
                     return;
                 }
 
-                if (AmproidMediaPlayer.this.track.isDoFade() && !sought && (fadeDirection == FADE_DIRECTION_NONE) && (position >= (duration - FADE_DURATION - 1000))) {
-                    synchronized (this) {
-                        fadeDirection = FADE_DIRECTION_OUT;
-                        fadeValue     = 1.0f;
-                    }
-                    startFade();
+                if (fadeOut == FADE_DO && (position >= (duration - FADE_DURATION))) {
+                    fadeOut       = FADE_DONE;
+                    fadeOutShaper = createVolumeShaper(new VolumeShaper.Configuration.Builder()
+                            .setDuration(duration - position + 1)
+                            .setCurve(new float[]{0.0f, 1.0f}, new float[]{1.0f, 0.0f})
+                            .setInterpolatorType(VolumeShaper.Configuration.INTERPOLATOR_TYPE_LINEAR)
+                            .build());
+                    fadeOutShaper.apply(VolumeShaper.Operation.PLAY);
                 }
             }
         }, 2500, 1000);
@@ -246,13 +270,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                 }
                 if (currentPosition <= 0) {
                     amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
-                    if (errorReAuth) {
-                        amproidService.getNewAuthToken(amproidService.getString(errorResource));
-                    }
-                    else {
-                        amproidService.fakeTrackMessage(R.string.error_play_error, amproidService.getString(R.string.error_error));
-                    }
-
+                    amproidService.fakeTrackMessage(R.string.error_play_error, amproidService.getString(R.string.error_error));
                     return;
                 }
 
@@ -306,7 +324,6 @@ final class AmproidMediaPlayer extends MediaPlayer
                         break;
                     case -2147483648:   // MEDIA_ERROR_SYSTEM ("session expired": the media player can not play the server's error message)
                         extraResource = R.string.media_error_system;
-                        errorReAuth = true;
                         break;
                     case MEDIA_ERROR_TIMED_OUT:
                         extraResource = R.string.media_error_timed_out_str;
@@ -325,20 +342,6 @@ final class AmproidMediaPlayer extends MediaPlayer
             }
         });
 
-        if (track.isDoFade()) {
-            synchronized (this) {
-                fadeValue     = 0.0f;
-                fadeDirection = FADE_DIRECTION_IN;
-            }
-        }
-        else {
-            synchronized (this) {
-                fadeValue     = 1.0f;
-                fadeDirection = FADE_DIRECTION_NONE;
-            }
-        }
-        setVolume(fadeValue, fadeValue);
-
         try {
             setDataSource(amproidService, Uri.parse(track.getUrl().toString()));
         }
@@ -351,9 +354,9 @@ final class AmproidMediaPlayer extends MediaPlayer
             return;
         }
 
-        // this will trigger the OnPreparedListener that was set up in the constructor
-        prepareAsync();
+        fadeIn = fadeOut = track.isDoFade() ? FADE_DO : FADE_NO;
 
+        amproidService.checkExpiredSession(playerHandler);
         amproidService.genuineTrackMessage(track);
     }
 
@@ -389,8 +392,20 @@ final class AmproidMediaPlayer extends MediaPlayer
         amproidService.genuineTrackMessage(track);
         amproidService.savePlayMode();
 
+        if (fadeIn == FADE_DO) {
+            fadeIn       = FADE_DONE;
+            fadeInShaper = createVolumeShaper(new VolumeShaper.Configuration.Builder()
+                    .setDuration(FADE_DURATION)
+                    .setCurve(new float[]{0.0f, 1.0f}, new float[]{0.0f, 1.0f})
+                    .setInterpolatorType(VolumeShaper.Configuration.INTERPOLATOR_TYPE_LINEAR)
+                    .build());
+        }
+
         try {
             super.start();
+            if (fadeInShaper != null) {
+                fadeInShaper.apply(VolumeShaper.Operation.PLAY);
+            }
         }
         catch (Exception e) {
             amproidService.fakeTrackMessage(R.string.error_play_error, (e.getMessage() == null) || e.getMessage().isEmpty() ? e.getClass().toString() : e.getMessage());
@@ -402,12 +417,7 @@ final class AmproidMediaPlayer extends MediaPlayer
         }
 
         playerHandler.post(effectCreate);
-
-        if (fadeDirection == FADE_DIRECTION_IN) {
-            startFade();
-        }
-
-        amproidService.mediaSessionUpdateDurationPosition();
+        amproidService.mediaSessionUpdateDurationPosition(true);
     }
 
 
@@ -454,13 +464,23 @@ final class AmproidMediaPlayer extends MediaPlayer
 
         try {
             super.seekTo(millisecond);
-            sought = true;
         }
         catch (Exception e) {
             amproidService.fakeTrackMessage(R.string.error_error, (e.getMessage() == null) || e.getMessage().isEmpty() ? e.getClass().toString() : e.getMessage());
 
             erred         = true;
             errorResource = R.string.error_error;
+        }
+
+        fadeIn  = FADE_NO;
+        fadeOut = FADE_NO;
+        if (fadeInShaper != null) {
+            fadeInShaper.close();
+            fadeInShaper = null;
+        }
+        if (fadeOutShaper != null) {
+            fadeOutShaper.close();
+            fadeOutShaper = null;
         }
     }
 
@@ -471,12 +491,6 @@ final class AmproidMediaPlayer extends MediaPlayer
         positionTimer.cancel();
         positionTimer.purge();
         positionTimer = null;
-
-        if (fadeTimer != null) {
-            fadeTimer.cancel();
-            fadeTimer.purge();
-            fadeTimer = null;
-        }
 
         if (equalizer != null) {
             equalizer.release();
@@ -525,41 +539,24 @@ final class AmproidMediaPlayer extends MediaPlayer
     }
 
 
-    private void startFade()
+    private void processMsg(Bundle arguments)
     {
-        if (track == null) {
+        boolean sessionExpired = false;
+
+        if (arguments.getString(amproidService.getString(R.string.msg_error_message), "").compareTo("Session Expired") == 0) {
+            sessionExpired = true;
+        }
+        else if (!arguments.getBoolean("isTokenValid", true)) {
+            sessionExpired = true;
+        }
+
+        if (sessionExpired) {
+            amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
+            amproidService.getNewAuthToken(amproidService.getString(errorResource));
             return;
         }
 
-        if (fadeTimer == null) {
-            fadeTimer = new Timer();
-
-            fadeTimer.schedule(new TimerTask()
-            {
-                @Override
-                public void run()
-                {
-                    if (fadeDirection == FADE_DIRECTION_NONE) {
-                        return;
-                    }
-
-                    if (isPlaying()) {
-                        float step = FADE_DURATION;
-                        step = (fadeDirection == FADE_DIRECTION_IN ? 1f : -1f) / (step / FADE_FREQUENCY);
-                        fadeValue += step;
-                    }
-
-                    setVolume(Math.max(Math.min(fadeValue, 1), 0), Math.max(Math.min(fadeValue, 1), 0));
-
-                    if ((fadeValue > 1) || (fadeValue < 0)) {
-                        fadeTimer.cancel();
-                        fadeTimer.purge();
-                        fadeTimer = null;
-
-                        fadeDirection = FADE_DIRECTION_NONE;
-                    }
-                }
-            }, FADE_FREQUENCY, FADE_FREQUENCY);
-        }
+        // this will trigger the OnPreparedListener that was set up in the constructor
+        prepareAsync();
     }
 }

@@ -120,7 +120,11 @@ public class GetRecentAlbumsThread extends ThreadCancellable
             }
         });
 
-        if ((resultToSend != null) && !isCancelled()) {
+        if (isCancelled()) {
+            return;
+        }
+
+        if (resultToSend != null) {
             ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
 
             for (HashMap<String, String> recentAlbum : recentAlbums) {
@@ -128,14 +132,51 @@ public class GetRecentAlbumsThread extends ThreadCancellable
                     continue;
                 }
 
-                results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
                         .setMediaId(PREFIX_ALBUM + recentAlbum.get("id"))
-                        .setTitle(recentAlbum.get("name"))
-                        .setIconUri(Uri.parse(recentAlbum.get("art")))
-                        .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+                        .setTitle(recentAlbum.get("name"));
+
+                String art = recentAlbum.get("art");
+                if ((art != null) && !art.isEmpty()) {
+                    builder.setIconUri(Uri.parse(art));
+                }
+
+                results.add(new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
             }
 
+            results.add(0,
+                    new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(Amproid.getAppContext().getString(R.string.item_random_recent_id))
+                                    .setTitle(Amproid.getAppContext().getString(R.string.item_random_recent_desc))
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    )
+            );
+
             resultToSend.sendResult(results);
+        }
+
+        int totalSongCount = 0;
+        for (HashMap<String, String> recentAlbum : recentAlbums) {
+            if (!recentAlbum.containsKey("songcount")) {
+                continue;
+            }
+
+            int songCount = 0;
+            try {
+                songCount = Integer.parseInt(recentAlbum.get("songcount"));
+            }
+            catch (Exception ignored) {
+            }
+
+            totalSongCount += songCount;
+        }
+
+        if (totalSongCount > 0) {
+            Bundle arguments = new Bundle();
+            arguments.putSerializable("recentSongCount", totalSongCount);
+            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_recent_albums, arguments);
         }
     }
 }

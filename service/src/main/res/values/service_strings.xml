@@ -43,12 +43,15 @@
     <string name="play_mode_browse_id_preference">radio_id</string>
     <string name="play_mode_artist_id_preference">artist_id</string>
     <string name="play_mode_album_id_preference">album_id</string>
+    <string name="play_mode_random_recent_count_preference">random_recent_count</string>
     <string name="playlist_cache_preferences">playlist_cache</string>
 
-    <string name="item_root_id">root</string>
-    <string name="item_recommendations_id">recommendations</string>
     <string name="item_playlists_id">playlists</string>
+    <string name="item_random_id">random_shuffle</string>
+    <string name="item_random_recent_id">random_new</string>
     <string name="item_recent_id">recent</string>
+    <string name="item_recommendations_id">recommendations</string>
+    <string name="item_root_id">root</string>
 
     <array name="fade_tags">
         <item>Live</item>

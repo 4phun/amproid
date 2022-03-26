@@ -76,7 +76,8 @@ public class AmpacheAPICaller
         GET_TRACKS_ID_TYPE_FLAGGED,
         GET_TRACKS_ID_TYPE_RECENTLY_PLAYED,
         GET_TRACKS_ID_TYPE_ANCIENTLY_PLAYED,
-        GET_TRACKS_ID_TYPE_NEVER_PLAYED
+        GET_TRACKS_ID_TYPE_NEVER_PLAYED,
+        GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED
     }
 
 
@@ -327,6 +328,7 @@ public class AmpacheAPICaller
         Vector<String> tagsNeeded = new Vector<>();
         tagsNeeded.add("name");
         tagsNeeded.add("art");
+        tagsNeeded.add("songcount");
 
         return blockingTransactionMulti(callUrl, "album", tagsNeeded);
     }
@@ -421,6 +423,15 @@ public class AmpacheAPICaller
             queryString.addNameValue("rule_1", "myplayed");
             queryString.addNameValue("rule_1_operator", "1");
             queryString.addNameValue("rule_1_input", "true");
+        }
+        else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED) {
+            // note here id should contain the number of recent tracks to select from (how far to go back)
+            queryString.addNameValue("action", "advanced_search");
+            queryString.addNameValue("type", "song");
+            queryString.addNameValue("random", "1");
+            queryString.addNameValue("rule_1", "recent_added");
+            queryString.addNameValue("rule_1_operator", "0");
+            queryString.addNameValue("rule_1_input", id);
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_NONE) {
             queryString.addNameValue("action", "playlist_generate");

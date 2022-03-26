@@ -495,6 +495,9 @@ public class AmproidMainActivity extends AppCompatActivity
         }
 
         Vector<Track> list = amproidServiceBinder.getAmproidService().getComingUpTracks();
+        if (list.size() < 1) {
+            return;
+        }
 
         ListView playlistView = new ListView(AmproidMainActivity.this);
         playlistView.setPadding(Math.round(getResources().getDimension(R.dimen.distance_from_edge)), Math.round(getResources().getDimension(R.dimen.separation)), Math.round(getResources().getDimension(R.dimen.distance_from_edge)), 0);
