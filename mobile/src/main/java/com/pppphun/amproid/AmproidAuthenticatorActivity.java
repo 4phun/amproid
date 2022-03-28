@@ -40,12 +40,14 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -289,6 +291,9 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
         final TextInputEditText userEditor = view.findViewById(R.id.user_input);
         final TextInputEditText pswEditor  = view.findViewById(R.id.psw_input);
         final Button            demoButton = view.findViewById(R.id.use_demo_server);
+        final TextView          demoNote   = view.findViewById(R.id.login_test_note_view);
+
+        demoNote.setMovementMethod(new ScrollingMovementMethod());
 
         userEditor.addTextChangedListener(new TextWatcher()
         {
@@ -478,10 +483,12 @@ public class AmproidAuthenticatorActivity extends AppCompatActivity
                         try {
                             ProgressBar demoChecking = addDialog.findViewById(R.id.demo_availability_checking);
                             Button      demoButton   = addDialog.findViewById(R.id.use_demo_server);
+                            TextView    demoNote     = addDialog.findViewById(R.id.login_test_note_view);
 
                             demoChecking.setVisibility(View.GONE);
                             if (finalResult) {
                                 demoButton.setVisibility(View.VISIBLE);
+                                demoNote.setVisibility(View.VISIBLE);
                             }
                         }
                         catch (Exception ignored) {

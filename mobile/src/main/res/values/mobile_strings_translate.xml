@@ -41,6 +41,7 @@
     <string name="seek_bar_label">Seek Bar</string>
 
     <string name="clear_text_warning">Note: only secure \"https://\" connections allowed.</string>
+    <string name="login_test_note">To log in for testing purposes, please click the \"Use Demo Server\" link above. For more information, please open "Quick Start Guide" from the menu.</string>
 
     <string name="title">Title</string>
     <string name="artist">Artist</string>

@@ -109,4 +109,17 @@
 
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/login_test_note_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/separation"
+        android:layout_marginRight="@dimen/separation"
+        android:paddingBottom="@dimen/distance_between"
+        android:text="@string/login_test_note"
+        android:textStyle="bold"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
+        android:scrollbars = "vertical"
+        android:visibility="gone" />
+
 </LinearLayout>

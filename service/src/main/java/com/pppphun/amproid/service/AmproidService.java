@@ -719,6 +719,12 @@ public class AmproidService extends MediaBrowserServiceCompat
         @SuppressWarnings("unchecked")
         Vector<Track> tracks = (Vector<Track>) data.getSerializable("tracks");
         if ((tracks == null) || tracks.isEmpty()) {
+            if (data.getBoolean("favorites", false)) {
+                GetTracksThread getTracks = new GetTracksThread(authToken, Amproid.getServerUrl(selectedAccount), PLAY_MODE_RANDOM, "", randomTags, randomCountdown, mainHandler);
+                startedThreads.add(getTracks);
+                getTracks.start();
+                return;
+            }
             fakeTrackMessage(R.string.error_error, getString(R.string.error_tracks_empty));
             return;
         }

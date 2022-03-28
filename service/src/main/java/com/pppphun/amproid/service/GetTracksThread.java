@@ -100,6 +100,7 @@ public class GetTracksThread extends ThreadCancellable
             return;
         }
 
+        boolean favorites = false;
         Vector<Track> tracks = new Vector<>();
         if (playMode == PLAY_MODE_RANDOM) {
             if ((randomGenresRemaining > 0) && (randomGenres.length() > 0)) {
@@ -112,7 +113,8 @@ public class GetTracksThread extends ThreadCancellable
                 }
             }
             else if (randomGenresRemaining < 0) {
-                tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, randomGenres, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED));
+                favorites = true;
+                tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, null, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED));
                 randomGenresRemaining = 0;
             }
             else {
@@ -169,6 +171,7 @@ public class GetTracksThread extends ThreadCancellable
         if (playMode == PLAY_MODE_RANDOM) {
             arguments.putString("randomGenres", randomGenres);
             arguments.putInt("randomGenresRemaining", randomGenresRemaining);
+            arguments.putBoolean("favorites", favorites);
         }
         Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, arguments);
     }
