@@ -39,6 +39,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -57,10 +58,12 @@ public class AmpacheAPICaller
     public static final int SEARCH_RESULTS_ARTISTS       = 4;
     public static final int SEARCH_RESULTS_PLAYLISTS     = 5;
     public static final int SEARCH_RESULTS_ADVANCED      = 6;
+    public static final int SEARCH_RESULTS_TAGS          = 7;
 
     private static final int    SEARCH_MAX_SONGS   = 100;
     private static final int    SEARCH_MAX_ALBUMS  = 36;
     private static final int    SEARCH_MAX_ARTISTS = 10;
+    private static final int    SEARCH_MAX_TAGS    = 12;
     private static final int    MIN_API_VERSION    = 400001;
     private static final String API_PATH           = "/server/xml.server.php";
 
@@ -788,12 +791,40 @@ public class AmpacheAPICaller
             }
         }
 
+        int apiVersion = pingForVersion();
+
+        QueryStringBuilder tagsQueryString = new QueryStringBuilder();
+        tagsQueryString.addNameValue("action", apiVersion >= 5000000 ? "genres" : "tags");
+        tagsQueryString.addNameValue("auth", token);
+        tagsQueryString.addNameValue("filter", query);
+        tagsQueryString.addNameValue("limit", String.valueOf(SEARCH_MAX_TAGS));
+
+        try {
+            url = new URL(baseUrl.toString() + API_PATH + "?" + tagsQueryString.getQueryString());
+        }
+        catch (Exception e) {
+            errorMessage = e.getMessage();
+            return new HashMap<>();
+        }
+
+        Vector<HashMap<String, String>> tags = blockingTransactionMulti(url, apiVersion >= 5000000 ? "genre" : "tag", nameTagNeeded);
+        try {
+            for (HashMap<String, String> tag : tags) {
+                tag.replace("id", URLEncoder.encode(tag.get("name"), StandardCharsets.UTF_8.toString()));
+            }
+        }
+        catch (Exception e) {
+            // in case UTF-8 is not supported, pretty much never happens with min SDK version being what it is
+            tags.clear();
+        }
+
         HashMap<Integer, Vector<HashMap<String, String>>> returnValue = new HashMap<>();
         returnValue.put(SEARCH_RESULTS_SONGS, songs);
         returnValue.put(SEARCH_RESULTS_ALBUMS, albums);
         returnValue.put(SEARCH_RESULTS_ARTIST_ALBUMS, artist_albums);
         returnValue.put(SEARCH_RESULTS_ARTISTS, artists);
         returnValue.put(SEARCH_RESULTS_ADVANCED, advanced);
+        returnValue.put(SEARCH_RESULTS_TAGS, tags);
 
         return returnValue;
     }

@@ -24,6 +24,7 @@ package com.pppphun.amproid.service;
 
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ARTIST;
+import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_SONG;
 
@@ -220,6 +221,7 @@ public class SearchCache
         else {
             processOrder = new int[]{
                     AmpacheAPICaller.SEARCH_RESULTS_ADVANCED,
+                    AmpacheAPICaller.SEARCH_RESULTS_TAGS,
                     AmpacheAPICaller.SEARCH_RESULTS_PLAYLISTS,
                     AmpacheAPICaller.SEARCH_RESULTS_ARTISTS,
                     AmpacheAPICaller.SEARCH_RESULTS_ALBUMS,
@@ -278,6 +280,10 @@ public class SearchCache
                 else if (type == AmpacheAPICaller.SEARCH_RESULTS_PLAYLISTS) {
                     idPrefix         = PREFIX_PLAYLIST;
                     subtitleResource = R.string.subtitle_playlist;
+                }
+                else if (type == AmpacheAPICaller.SEARCH_RESULTS_TAGS) {
+                    idPrefix = PREFIX_GENRE;
+                    subtitleResource = R.string.subtitle_genre;
                 }
 
                 String id = idPrefix + item.get("id");

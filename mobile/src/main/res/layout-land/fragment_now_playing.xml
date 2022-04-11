@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of Amproid
+  ~
+  ~ Copyright (c) 2021. Peter Papp
+  ~
+  ~ Please visit https://github.com/4phun/Amproid for details
+  ~
+  ~ Amproid is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Amproid is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Amproid. If not, see http://www.gnu.org/licenses/
+  -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/art"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="@dimen/distance_between"
+        android:contentDescription="@string/art"
+        android:scaleType="fitXY"
+        app:srcCompat="@drawable/ic_launcher" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/title"
+            style="@android:style/TextAppearance.Large"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/distance_from_edge"
+            android:layout_marginRight="@dimen/distance_from_edge"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:scrollHorizontally="false"
+            android:text="@string/title"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/artist"
+            style="@android:style/TextAppearance.Large"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/distance_from_edge"
+            android:layout_marginRight="@dimen/distance_from_edge"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:scrollHorizontally="false"
+            android:text="@string/artist" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/album"
+            style="@android:style/TextAppearance.Small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/distance_from_edge"
+            android:layout_marginRight="@dimen/distance_from_edge"
+            android:ellipsize="middle"
+            android:gravity="center"
+            android:maxLines="1"
+            android:scrollHorizontally="false"
+            android:text="@string/album" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <SeekBar
+            android:id="@+id/positionIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/split"
+            android:contentDescription="@string/seek_bar_label"
+            android:thumb="@null" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+</LinearLayout>

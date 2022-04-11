@@ -24,8 +24,9 @@ package com.pppphun.amproid;
 
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -33,8 +34,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-
-import com.pppphun.amproid.shared.Amproid;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -77,18 +76,26 @@ public class NowPlayingFragment extends Fragment
         }
 
         if (art != null) {
-            FragmentActivity activity = getActivity();
-            if (activity != null) {
-                int screenWidth  = Amproid.screenSize(requireActivity(), Amproid.ScreenSizeDimension.SCREEN_SIZE_WIDTH);
-                int screenHeight = Amproid.screenSize(requireActivity(), Amproid.ScreenSizeDimension.SCREEN_SIZE_HEIGHT);
+            view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener()
+            {
+                @Override
+                public void onGlobalLayout()
+                {
+                    if ((view.getHeight() > 0) && (view.getWidth() > 0)) {
+                        int imageSize = Math.min(view.getHeight(), view.getWidth());
 
-                int imageSize = Math.min(screenWidth, screenHeight);
+                        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) art.getLayoutParams();
+                        params.width  = imageSize;
+                        params.height = imageSize;
+                        if (imageSize == view.getHeight()) {
+                            params.leftMargin = Math.round(getResources().getDimension(R.dimen.distance_from_edge));
+                        }
+                        art.setLayoutParams(params);
 
-                ViewGroup.LayoutParams params = art.getLayoutParams();
-                params.width  = imageSize;
-                params.height = imageSize;
-                art.setLayoutParams(params);
-            }
+                        view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    }
+                }
+            });
         }
 
         if (position != null) {
