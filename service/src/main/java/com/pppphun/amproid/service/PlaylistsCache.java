@@ -26,6 +26,7 @@ import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -39,6 +40,7 @@ import androidx.media.MediaBrowserServiceCompat;
 import com.pppphun.amproid.shared.Amproid;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -100,6 +102,25 @@ public class PlaylistsCache
                         @SuppressWarnings("unchecked")
                         Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
                         if (playlists != null) {
+                            playlists.sort(new Comparator<HashMap<String, String>>()
+                            {
+                                @Override
+                                public int compare(HashMap<String, String> o1, HashMap<String, String> o2)
+                                {
+                                    String n1 = o1.get("name");
+                                    String n2 = o2.get("name");
+
+                                    if (n1 == null) {
+                                        n1 = "";
+                                    }
+                                    if (n2 == null) {
+                                        n2 = "";
+                                    }
+
+                                    return n1.compareTo(n2);
+                                }
+                            });
+
                             synchronized (this) {
                                 PlaylistsCache.this.playlists = playlists;
                                 valid                         = true;
@@ -231,11 +252,33 @@ public class PlaylistsCache
 
             playlist.put("id", preferences.getString(Integer.toString(key), ""));
             playlist.put("name", preferences.getString(Integer.toString(key + 1), ""));
+            if (preferences.contains(Integer.toString(key + 2))) {
+                playlist.put("art", preferences.getString(Integer.toString(key + 2), ""));
+            }
 
             playlists.add(playlist);
 
             key += 10;
         }
+
+        playlists.sort(new Comparator<HashMap<String, String>>()
+        {
+            @Override
+            public int compare(HashMap<String, String> o1, HashMap<String, String> o2)
+            {
+                String n1 = o1.get("name");
+                String n2 = o2.get("name");
+
+                if (n1 == null) {
+                    n1 = "";
+                }
+                if (n2 == null) {
+                    n2 = "";
+                }
+
+                return n1.compareTo(n2);
+            }
+        });
 
         synchronized (this) {
             valid          = found;
@@ -260,6 +303,9 @@ public class PlaylistsCache
         for (HashMap<String, String> playlist : playlists) {
             preferencesEditor.putString(Integer.toString(key), playlist.get("id"));
             preferencesEditor.putString(Integer.toString(key + 1), playlist.get("name"));
+            if (playlist.containsKey("art")) {
+                preferencesEditor.putString(Integer.toString(key + 2), playlist.get("art"));
+            }
             key += 10;
         }
 
@@ -300,6 +346,7 @@ public class PlaylistsCache
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
                     .setMediaId(PREFIX_PLAYLIST + playlist.get("id"))
                     .setTitle(name)
+                    .setIconUri((playlist.get("art") == null) || (playlist.get("id").startsWith("smart_")) ? null : Uri.parse(playlist.get("art")))
                     .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
         }
 

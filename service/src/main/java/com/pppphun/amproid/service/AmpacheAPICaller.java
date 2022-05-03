@@ -273,14 +273,10 @@ public class AmpacheAPICaller
         errorMessage = "";
 
         QueryStringBuilder queryString = new QueryStringBuilder();
-        queryString.addNameValue("action", "get_indexes");
+        queryString.addNameValue("action", "playlists");
         queryString.addNameValue("auth", token);
         if ((apiVersion != 424000) && (apiVersion != 425000)) {
             queryString.addNameValue("limit", "none");
-        }
-        queryString.addNameValue("type", "playlist");
-        if (apiVersion >= 5000000) {
-            queryString.addNameValue("include", "0");
         }
 
         URL callUrl;
@@ -294,6 +290,7 @@ public class AmpacheAPICaller
 
         Vector<String> tagsNeeded = new Vector<>();
         tagsNeeded.add("name");
+        tagsNeeded.add("art");
 
         return blockingTransactionMulti(callUrl, "playlist", tagsNeeded);
     }
@@ -394,8 +391,18 @@ public class AmpacheAPICaller
             queryString.addNameValue("filter", id);
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED) {
-            queryString.addNameValue("action", "playlist_generate");
-            queryString.addNameValue("flag", "1");
+            if (apiVersion < 5000000) {
+                queryString.addNameValue("action", "playlist_generate");
+                queryString.addNameValue("mode", "random");
+                queryString.addNameValue("flag", "1");
+            }
+            else {
+                queryString.addNameValue("action", "advanced_search");
+                queryString.addNameValue("random", "1");
+                queryString.addNameValue("rule_1", "favorite");
+                queryString.addNameValue("rule_1_operator", "0");
+                queryString.addNameValue("rule_1_input", "%");
+            }
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RECENTLY_PLAYED) {
             queryString.addNameValue("action", "advanced_search");
@@ -537,7 +544,6 @@ public class AmpacheAPICaller
         queryString.addNameValue("action", "handshake");
         queryString.addNameValue("auth", handshake256);
         queryString.addNameValue("timestamp", timeStr);
-        queryString.addNameValue("version", String.valueOf(MIN_API_VERSION));
         queryString.addNameValue("user", user);
 
         URL callUrl;
