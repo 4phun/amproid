@@ -409,9 +409,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             haveAudioFocus = false;
-            if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                }
             }
+            catch (Exception ignored) {}
         };
 
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -734,6 +737,22 @@ public class AmproidService extends MediaBrowserServiceCompat
             comingUpTracks.clear();
             comingUpTracks.addAll(tracks);
 
+            List<MediaSessionCompat.QueueItem> queue = new ArrayList<>();
+            for (int i = 0; i < comingUpTracks.size(); i++) {
+                Track track = comingUpTracks.get(i);
+                queue.add(new MediaSessionCompat.QueueItem(new MediaDescriptionCompat.Builder()
+                        .setMediaId(track.getId())
+                        .setTitle(track.getTitle())
+                        .build(), i));
+            }
+            mediaSession.setQueue(queue);
+            if (data.containsKey("queueTitle")) {
+                mediaSession.setQueueTitle(data.getString("queueTitle"));
+            }
+            else {
+                mediaSession.setQueueTitle("Tracks in queue");
+            }
+
             if ((comingUpIndex >= 0) && (comingUpIndex < tracks.size())) {
                 trackIndex = comingUpIndex;
             }
@@ -741,6 +760,10 @@ public class AmproidService extends MediaBrowserServiceCompat
                 // this could happen if playlist is modified on Ampache server between Amproid restarts
                 comingUpIndex = trackIndex;
             }
+        }
+        else {
+            mediaSession.setQueueTitle("");
+            mediaSession.setQueue(null);
         }
 
         startTrack(tracks.get(trackIndex));
@@ -1347,9 +1370,12 @@ public class AmproidService extends MediaBrowserServiceCompat
 
             if (mediaId.compareTo(getString(R.string.item_random_id)) == 0) {
                 if (playMode != PLAY_MODE_RANDOM) {
-                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                        mediaPlayer.pause();
+                    try {
+                        if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                            mediaPlayer.pause();
+                        }
                     }
+                    catch (Exception ignored) {}
 
                     playMode = PLAY_MODE_RANDOM;
                     GetTracksThread getTracks = new GetTracksThread(authToken, serverUrl, playMode, "", randomTags, randomCountdown, mainHandler);
@@ -1360,9 +1386,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.compareTo(getString(R.string.item_random_recent_id)) == 0) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode      = PLAY_MODE_RANDOM_RECENT;
                 comingUpIndex = 0;
@@ -1376,9 +1405,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_PLAYLIST)) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode      = PLAY_MODE_PLAYLIST;
                 playlistId    = mediaId.replace(PREFIX_PLAYLIST, "");
@@ -1393,9 +1425,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_GENRE)) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode      = PLAY_MODE_GENRE;
                 genreId       = mediaId.replace(PREFIX_GENRE, "");
@@ -1410,9 +1445,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_ARTIST)) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode      = PLAY_MODE_ARTIST;
                 artistId      = mediaId.replace(PREFIX_ARTIST, "");
@@ -1427,9 +1465,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_ALBUM)) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode      = PLAY_MODE_ALBUM;
                 albumId       = mediaId.replace(PREFIX_ALBUM, "");
@@ -1444,9 +1485,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_SONG)) {
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try{
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 playMode = PLAY_MODE_BROWSE;
                 browseId = mediaId.replace(PREFIX_SONG, "");
@@ -1461,9 +1505,12 @@ public class AmproidService extends MediaBrowserServiceCompat
                 if (!RADIO_ENABLED) {
                     return;
                 }
-                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
+                try {
+                    if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
                 }
+                catch (Exception ignored) {}
 
                 browseId = mediaId.replace(PREFIX_RADIO, "");
 
@@ -1538,21 +1585,53 @@ public class AmproidService extends MediaBrowserServiceCompat
 
 
         @Override
+        public void onSkipToQueueItem(long id)
+        {
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                }
+            }
+            catch (Exception ignored) {}
+
+            if (playMode == PLAY_MODE_UNKNOWN) {
+                // app didn't start yet, will play after token is verified
+                return;
+            }
+
+            if ((playMode == PLAY_MODE_PLAYLIST) || (playMode == PLAY_MODE_GENRE) || (playMode == PLAY_MODE_ARTIST) || (playMode == PLAY_MODE_ALBUM) || (playMode == PLAY_MODE_RANDOM_RECENT)) {
+                if ((id < 0) || (id >= comingUpTracks.size())) {
+                    return;
+                }
+                comingUpIndex = (int) id;
+                pausedByUser  = false;
+                startTrack(comingUpTracks.get(comingUpIndex));
+            }
+        }
+
+
+        @Override
         public void onPause()
         {
             pausedByUser = true;
-            if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                }
             }
+            catch (Exception ignored) {}
         }
 
 
         @Override
         public void onSkipToNext()
         {
-            if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                }
             }
+            catch (Exception ignored) {}
 
             if (playMode == PLAY_MODE_UNKNOWN) {
                 // app didn't start yet, will play after token is verified
@@ -1620,9 +1699,12 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             // pause playback just in case the service is bound
-            if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                }
             }
+            catch (Exception ignored) {}
 
             stopSelf();
         }
@@ -1631,9 +1713,12 @@ public class AmproidService extends MediaBrowserServiceCompat
         @Override
         public void onSeekTo(long pos)
         {
-            if ((mediaPlayer != null) && mediaPlayer.isPlaying() && (pos >= 0) && (pos <= mediaPlayer.getDuration())) {
-                mediaPlayer.seekTo((int) pos);
+            try {
+                if ((mediaPlayer != null) && mediaPlayer.isPlaying() && (pos >= 0) && (pos <= mediaPlayer.getDuration())) {
+                    mediaPlayer.seekTo((int) pos);
+                }
             }
+            catch (Exception ignored) {}
         }
     }
 
@@ -1689,4 +1774,8 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
         }
     }
+
+
+
+
 }

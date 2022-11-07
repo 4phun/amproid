@@ -257,6 +257,41 @@ public class AmpacheAPICaller
     }
 
 
+    public Vector<HashMap<String, String>> getPlaylist(String token, String id)
+    {
+        if (baseUrl == null) {
+            setErrorMessage(com.pppphun.amproid.shared.R.string.error_invalid_server_url);
+            return new Vector<>();
+        }
+        if (token.isEmpty()) {
+            setErrorMessage(com.pppphun.amproid.shared.R.string.error_blank_token);
+            return new Vector<>();
+        }
+
+        errorMessage = "";
+
+        QueryStringBuilder queryString = new QueryStringBuilder();
+        queryString.addNameValue("action", "playlist");
+        queryString.addNameValue("auth", token);
+        queryString.addNameValue("filter", id);
+
+        URL callUrl;
+        try {
+            callUrl = new URL(baseUrl.toString() + API_PATH + "?" + queryString.getQueryString());
+        }
+        catch (Exception e) {
+            errorMessage = e.getMessage();
+            return new Vector<>();
+        }
+
+        Vector<String> tagsNeeded = new Vector<>();
+        tagsNeeded.add("name");
+        tagsNeeded.add("art");
+
+        return blockingTransactionMulti(callUrl, "playlist", tagsNeeded);
+    }
+
+
     public Vector<HashMap<String, String>> getPlaylists(String token)
     {
         if (baseUrl == null) {
