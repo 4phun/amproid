@@ -28,6 +28,7 @@ import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_ARTIST;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_BROWSE;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_PLAYLIST;
+import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_RADIO;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_RANDOM;
 import static com.pppphun.amproid.service.AmproidService.PLAY_MODE_RANDOM_RECENT;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_NONE;
@@ -41,7 +42,6 @@ import com.pppphun.amproid.shared.Amproid;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 
@@ -101,9 +101,10 @@ public class GetTracksThread extends ThreadCancellable
             return;
         }
 
-        boolean       favorites  = false;
-        Vector<Track> tracks     = new Vector<>();
-        String        queueTitle = "";
+        boolean       favorites   = false;
+        Vector<Track> tracks      = new Vector<>();
+        String        queueTitle  = null;
+        boolean       multiBrowse = false;
         if (playMode == PLAY_MODE_RANDOM) {
             if ((randomGenresRemaining > 0) && (randomGenres.length() > 0)) {
                 tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, randomGenres, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_GENRE));
@@ -141,27 +142,37 @@ public class GetTracksThread extends ThreadCancellable
         }
         else if (playMode == PLAY_MODE_PLAYLIST) {
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 0, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_PLAYLIST));
-            Vector<HashMap<String, String>> temp = ampacheAPICaller.getPlaylist(authToken, ampacheId);
-            if ((temp.size() == 1) && temp.get(0).containsKey("id") && temp.get(0).get("id").equals(ampacheId) && temp.get(0).containsKey("name")) {
-                queueTitle = temp.get(0).get("name");
+            try {
+                queueTitle = ampacheAPICaller.getPlaylist(authToken, ampacheId).get(0).get("name");
+            }
+            catch (Exception ignored) {
             }
         }
         else if (playMode == PLAY_MODE_ARTIST) {
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 7, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_ARTIST));
-            Vector<HashMap<String, String>> temp = ampacheAPICaller.getArtist(authToken, ampacheId);
-            if ((temp.size() == 1) && temp.get(0).containsKey("id") && temp.get(0).get("id").equals(ampacheId) && temp.get(0).containsKey("name")) {
-                queueTitle = temp.get(0).get("name");
+            try {
+                queueTitle = ampacheAPICaller.getArtist(authToken, ampacheId).get(0).get("name");
+            }
+            catch (Exception ignored) {
             }
         }
         else if (playMode == PLAY_MODE_ALBUM) {
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 0, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_ALBUM));
-            Vector<HashMap<String, String>> temp = ampacheAPICaller.getAlbum(authToken, ampacheId);
-            if ((temp.size() == 1) && temp.get(0).containsKey("id") && temp.get(0).get("id").equals(ampacheId) && temp.get(0).containsKey("name")) {
-                queueTitle = temp.get(0).get("name");
+            try {
+                queueTitle = ampacheAPICaller.getAlbum(authToken, ampacheId).get(0).get("name");
+            }
+            catch (Exception ignored) {
             }
         }
         else if (playMode == PLAY_MODE_BROWSE) {
-            tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_SONG));
+            String[] trackIds = ampacheId.split(",");
+            multiBrowse = (trackIds.length > 1);
+            for (String trackId: trackIds) {
+                tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, trackId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_SONG));
+                if (isCancelled() || !ampacheAPICaller.getErrorMessage().isEmpty()) {
+                    break;
+                }
+            }
         }
         else if (playMode == PLAY_MODE_GENRE) {
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 7, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_GENRE));
@@ -177,6 +188,9 @@ public class GetTracksThread extends ThreadCancellable
             tracks.addAll(ampacheAPICaller.getTracks(authToken, 7, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED));
             queueTitle = "Shuffle new";
         }
+        else if (playMode == PLAY_MODE_RADIO) {
+            tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, ampacheId, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_RADIO));
+        }
 
         if (isCancelled()) {
             return;
@@ -189,13 +203,17 @@ public class GetTracksThread extends ThreadCancellable
 
         Bundle arguments = new Bundle();
         arguments.putSerializable("tracks", tracks);
+        arguments.putString("ampacheId", ampacheId);
         if (playMode == PLAY_MODE_RANDOM) {
             arguments.putString("randomGenres", randomGenres);
             arguments.putInt("randomGenresRemaining", randomGenresRemaining);
             arguments.putBoolean("favorites", favorites);
         }
-        if (queueTitle.length() > 0) {
+        if ((queueTitle != null) && (queueTitle.length() > 0)) {
             arguments.putString("queueTitle", queueTitle);
+        }
+        if (multiBrowse) {
+            arguments.putBoolean("multiBrowse", true);
         }
         Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, arguments);
     }

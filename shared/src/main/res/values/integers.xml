@@ -25,6 +25,7 @@
 <resources>
 
     <integer name="async_image_downloader">201</integer>
-    <integer name="default_loudness_gain">150</integer>
+    <integer name="default_loudness_gain_plain">150</integer>
+    <integer name="default_loudness_gain_radio">-300</integer>
 
 </resources>

@@ -42,6 +42,8 @@ import java.util.Vector;
 
 public class GetRecommendationsThread extends ThreadCancellable
 {
+    private static final int MAX_PER_TYPE = 3;
+
     private final String authToken;
     private final String url;
 
@@ -98,22 +100,20 @@ public class GetRecommendationsThread extends ThreadCancellable
 
         // default values = Balanced
         int trackCountFav         = 1;
-        int trackCountRecent      = 1;
+        int trackCountRecent      = 0;
         int trackCountAncient     = 1;
-        int trackCountNeverPlayed = 1;
-
+        int trackCountNeverPlayed = 0;
         if (forYouIndex == 0) {
             // Adventurous
-            trackCountRecent      = 0;
+            trackCountFav         = 0;
             trackCountAncient     = 2;
             trackCountNeverPlayed = 2;
         }
         else if (forYouIndex == 2) {
             // Disciplined
-            trackCountFav         = 3;
-            trackCountRecent      = 2;
-            trackCountAncient     = 1;
-            trackCountNeverPlayed = 0;
+            trackCountFav     = 2;
+            trackCountRecent  = 1;
+            trackCountAncient = 0;
         }
 
         int trackCountBase = trackCountFav + trackCountRecent + trackCountAncient + trackCountNeverPlayed;
@@ -306,14 +306,14 @@ public class GetRecommendationsThread extends ThreadCancellable
                 }
             });
 
+            i = 0;
+            while ((i < sortTags.size()) && (i < 3)) {
+                genres.add(sortTags.get(i));
+                i++;
+            }
+
             Integer maxRank = tagsCounter.get(sortTags.get(0));
             if (maxRank != null) {
-                i = 0;
-                while ((i < sortTags.size()) && (i < 12)) {
-                    genres.add(sortTags.get(i));
-                    i++;
-                }
-
                 i = 0;
                 while ((i < sortTags.size()) && (i < 3)) {
                     Integer currentRank = tagsCounter.get(sortTags.get(i));
@@ -332,6 +332,22 @@ public class GetRecommendationsThread extends ThreadCancellable
                     i++;
                 }
             }
+        }
+
+        while (tracks.size() > MAX_PER_TYPE) {
+            tracks.remove(randomizer.nextInt(tracks.size()));
+        }
+        while (artists.size() > MAX_PER_TYPE) {
+            artists.remove(randomizer.nextInt(artists.size()));
+        }
+        while (albums.size() > MAX_PER_TYPE) {
+            albums.remove(randomizer.nextInt(albums.size()));
+        }
+        while (playlists.size() > MAX_PER_TYPE) {
+            playlists.remove(randomizer.nextInt(playlists.size()));
+        }
+        while (genres.size() > MAX_PER_TYPE) {
+            genres.remove(randomizer.nextInt(genres.size()));
         }
 
         if (isCancelled()) {

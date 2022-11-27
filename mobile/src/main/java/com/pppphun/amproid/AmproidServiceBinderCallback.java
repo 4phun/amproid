@@ -23,6 +23,8 @@ package com.pppphun.amproid;
 
 
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.pppphun.amproid.service.AmproidService;
@@ -43,6 +45,15 @@ public class AmproidServiceBinderCallback implements AmproidService.IAmproidServ
     public void quitNow()
     {
         mainActivity.finish();
+    }
+
+    @Override
+    public void showLoading()
+    {
+        ProgressBar loading = mainActivity.findViewById(R.id.loading);
+        if (loading != null) {
+            loading.setVisibility(View.VISIBLE);
+        }
     }
 
 

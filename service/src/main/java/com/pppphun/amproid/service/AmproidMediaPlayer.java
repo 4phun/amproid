@@ -42,7 +42,7 @@ import java.util.TimerTask;
 
 final class AmproidMediaPlayer extends MediaPlayer
 {
-    private static final int EQ_PRIORITY   = 9;
+    private static final int FX_PRIORITY   = 9;
     private static final int MAX_ATTEMPTS  = 5;
     private static final int ATTEMPT_DELAY = 50;
 
@@ -69,6 +69,8 @@ final class AmproidMediaPlayer extends MediaPlayer
     private Timer        positionTimer;
     private VolumeShaper fadeInShaper  = null;
     private VolumeShaper fadeOutShaper = null;
+
+    private int noAutoStartMessageCounter = 0;
 
 
     private final Handler playerHandler = new Handler(Looper.getMainLooper())
@@ -98,14 +100,16 @@ final class AmproidMediaPlayer extends MediaPlayer
         @Override
         public void run()
         {
-            if ((equalizerAttempts < MAX_ATTEMPTS) && (equalizer != null) && (amproidService.equalizerSettings != null) && (amproidService.equalizerSettings.numBands == equalizer.getNumberOfBands())) {
+            Equalizer.Settings equalizerSettings = track.isRadio() ? amproidService.equalizerSettingsRadio : amproidService.equalizerSettingsPlain;
+
+            if ((equalizerAttempts < MAX_ATTEMPTS) && (equalizer != null) && (equalizerSettings != null) && (equalizerSettings.numBands == equalizer.getNumberOfBands())) {
                 equalizerAttempts++;
 
                 short minLevel = equalizer.getBandLevelRange()[0];
                 short maxLevel = equalizer.getBandLevelRange()[1];
 
-                for (int i = 0; i < amproidService.equalizerSettings.numBands; i++) {
-                    short level = amproidService.equalizerSettings.bandLevels[i];
+                for (int i = 0; i < equalizerSettings.numBands; i++) {
+                    short level = equalizerSettings.bandLevels[i];
 
                     if (level < minLevel) {
                         level = minLevel;
@@ -142,7 +146,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                 loudnessAttempts++;
 
                 try {
-                    loudnessEnhancer.setTargetGain(track.isRadio() ? Math.max(0, amproidService.loudnessGainSetting - 600) : amproidService.loudnessGainSetting);
+                    loudnessEnhancer.setTargetGain(track.isRadio() ? amproidService.loudnessGainSettingRadio : amproidService.loudnessGainSettingPlain);
                     loudnessEnhancer.setEnabled(true);
                 }
                 catch (Exception e) {
@@ -165,7 +169,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                     int audioSessionId = getAudioSessionId();
                     if (audioSessionId != 0) {
                         if (equalizer == null) {
-                            equalizer = new Equalizer(EQ_PRIORITY, audioSessionId);
+                            equalizer = new Equalizer(FX_PRIORITY, audioSessionId);
                         }
                         if (loudnessEnhancer == null) {
                             loudnessEnhancer = new LoudnessEnhancer(audioSessionId);
@@ -176,7 +180,6 @@ final class AmproidMediaPlayer extends MediaPlayer
                     playerHandler.postDelayed(effectCreate, ATTEMPT_DELAY);
                     return;
                 }
-
                 if (fadeInShaper == null) {
                     setEffects();
                 }
@@ -194,6 +197,27 @@ final class AmproidMediaPlayer extends MediaPlayer
             }
         }
     };
+
+    private final Runnable noAutoStartMessageDisplay = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            int delay = 500;
+            if (noAutoStartMessageCounter % 2 == 0) {
+                amproidService.fakeTrackMessage(R.string.press_play, track.getAlbum());
+            }
+            else {
+                amproidService.genuineTrackMessage(track);
+                delay = 1500;
+            }
+
+            noAutoStartMessageCounter++;
+
+            playerHandler.postDelayed(noAutoStartMessageDisplay, delay);
+        }
+    };
+
 
     AmproidMediaPlayer(AmproidService amproidService, Track track, final boolean autoStart)
     {
@@ -248,6 +272,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                 }
                 else {
                     amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, getCurrentPosition());
+                    playerHandler.post(noAutoStartMessageDisplay);
                 }
 
                 if (AmproidMediaPlayer.this.track.getPictureUrl() != null) {
@@ -401,6 +426,9 @@ final class AmproidMediaPlayer extends MediaPlayer
                     .build());
         }
 
+        playerHandler.removeCallbacks(noAutoStartMessageDisplay);
+        amproidService.genuineTrackMessage(track);
+
         try {
             super.start();
             if (fadeInShaper != null) {
@@ -488,6 +516,8 @@ final class AmproidMediaPlayer extends MediaPlayer
     @Override
     public void release()
     {
+        playerHandler.removeCallbacks(noAutoStartMessageDisplay);
+
         positionTimer.cancel();
         positionTimer.purge();
         positionTimer = null;

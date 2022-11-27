@@ -37,6 +37,7 @@
     <!-- options -->
     <string name="options_preferences">options</string>
     <string name="dot_playlists_hide_preference">hide_dot_playlists</string>
+    <string name="show_radios_preference">show_radios</string>
     <string name="recommendations_mode_preference">recommendations_mode</string>
 
     <!-- accounts -->
@@ -49,6 +50,7 @@
     <string name="eq_key_freqs">frequencies</string>
     <string name="eq_key_min">min_level</string>
     <string name="eq_key_max">max_level</string>
+    <string name="eq_key_is_radio">is_radio</string>
     <string name="eq_key_loudness_gain">loudness_gain</string>
 
     <!-- search history -->

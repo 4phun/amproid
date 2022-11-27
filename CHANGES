@@ -1,3 +1,20 @@
+2.1 - 2022-11-27
+    Dropped support for Ampache version 4, minimum is 5.0.0
+    Support radio stations
+    Separate equalizer settings for radio stations
+    Less recommendations in "For You"
+    Refresh UI after options changed
+    Sleep timer
+    Minor UI improvements
+    Bugfixes
+
+2.0.15 - 2022-11-07
+    Show queue in Android Auto, when playing a playlist, an album, or similar items
+
+2.0.14 - 2022-05-03
+    Support playlist art (requires refresh of playlists)
+    Workarounds for favorites issues in server
+
 2.0.13 - 2022-04-10
     Search now includes tags (genres)
     Better landscape layout

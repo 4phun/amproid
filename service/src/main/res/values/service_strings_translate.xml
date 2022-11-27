@@ -27,6 +27,7 @@
     <!-- general -->
     <string name="initializing">Initializing</string>
     <string name="radio_station">Radio Station</string>
+    <string name="press_play">Press Play to start</string>
 
     <!-- login / logout -->
     <string name="login_handshake">Handshake with server</string>
@@ -40,6 +41,7 @@
     <string name="item_recommendations_mode_desc">\"For You\" Mode</string>
     <string name="item_search_results_desc">Search Results</string>
     <string name="item_playlists_desc">Playlists</string>
+    <string name="item_radios_desc">Radio Stations</string>
     <string name="item_recent_desc">New</string>
     <string name="getting_playlist_tracks">Getting tracks in playlist…</string>
     <string name="getting_artist_tracks">Getting artist\'s tracks…</string>

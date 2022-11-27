@@ -23,6 +23,8 @@ package com.pppphun.amproid;
 
 
 import android.os.Bundle;
+import android.transition.Transition;
+import android.transition.TransitionInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
@@ -48,6 +50,20 @@ public class NowPlayingFragment extends Fragment
     public NowPlayingFragment()
     {
         super(R.layout.fragment_now_playing);
+    }
+
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        try {
+            Transition transition = TransitionInflater.from(requireContext()).inflateTransition(R.transition.fragment_change);
+            setEnterTransition(transition);
+            setExitTransition(transition);
+        }
+        catch (Exception ignored) {
+        }
     }
 
 
@@ -151,7 +167,7 @@ public class NowPlayingFragment extends Fragment
                 if (inc) {
                     SeekBar position = null;
                     try {
-                        position = getView().findViewById(R.id.positionIndicator);
+                        position = requireView().findViewById(R.id.positionIndicator);
                     }
                     catch (Exception ignored) {
                     }

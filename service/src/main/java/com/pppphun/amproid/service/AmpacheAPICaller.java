@@ -59,12 +59,14 @@ public class AmpacheAPICaller
     public static final int SEARCH_RESULTS_PLAYLISTS     = 5;
     public static final int SEARCH_RESULTS_ADVANCED      = 6;
     public static final int SEARCH_RESULTS_TAGS          = 7;
+    public static final int SEARCH_RESULTS_RADIOS        = 8;
 
     private static final int    SEARCH_MAX_SONGS   = 100;
     private static final int    SEARCH_MAX_ALBUMS  = 36;
     private static final int    SEARCH_MAX_ARTISTS = 10;
     private static final int    SEARCH_MAX_TAGS    = 12;
-    private static final int    MIN_API_VERSION    = 400001;
+    private static final int    SEARCH_MAX_RADIOS  = 5;
+    private static final int    MIN_API_VERSION    = 5000000;
     private static final String API_PATH           = "/server/xml.server.php";
 
 
@@ -80,7 +82,8 @@ public class AmpacheAPICaller
         GET_TRACKS_ID_TYPE_RECENTLY_PLAYED,
         GET_TRACKS_ID_TYPE_ANCIENTLY_PLAYED,
         GET_TRACKS_ID_TYPE_NEVER_PLAYED,
-        GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED
+        GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED,
+        GET_TRACKS_ID_TYPE_RADIO
     }
 
 
@@ -147,17 +150,13 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
-        int apiVersion = pingForVersion();
-
         errorMessage = "";
 
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "artist_albums");
         queryString.addNameValue("auth", token);
         queryString.addNameValue("filter", artistId);
-        if ((apiVersion != 424000) && (apiVersion != 425000)) {
-            queryString.addNameValue("limit", "none");
-        }
+        queryString.addNameValue("limit", "none");
 
         URL callUrl;
         try {
@@ -228,17 +227,12 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
-        int apiVersion = pingForVersion();
-
         errorMessage = "";
 
         QueryStringBuilder queryString = new QueryStringBuilder();
-        queryString.addNameValue("action", "get_indexes");
+        queryString.addNameValue("action", "live_streams");
         queryString.addNameValue("auth", token);
-        if ((apiVersion != 424000) && (apiVersion != 425000)) {
-            queryString.addNameValue("limit", "none");
-        }
-        queryString.addNameValue("type", "live_stream");
+        queryString.addNameValue("limit", "none");
 
         URL callUrl;
         try {
@@ -303,16 +297,12 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
-        int apiVersion = pingForVersion();
-
         errorMessage = "";
 
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "playlists");
         queryString.addNameValue("auth", token);
-        if ((apiVersion != 424000) && (apiVersion != 425000)) {
-            queryString.addNameValue("limit", "none");
-        }
+        queryString.addNameValue("limit", "none");
 
         URL callUrl;
         try {
@@ -380,8 +370,6 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
-        int apiVersion = pingForVersion();
-
         errorMessage = "";
 
         QueryStringBuilder queryString = new QueryStringBuilder();
@@ -389,9 +377,7 @@ public class AmpacheAPICaller
 
         // count = 0 means no limit
         if (count == 0) {
-            if ((apiVersion != 424000) && (apiVersion != 425000)) {
-                queryString.addNameValue("limit", "none");
-            }
+            queryString.addNameValue("limit", "none");
         }
         else {
             queryString.addNameValue("limit", String.valueOf(count));
@@ -426,18 +412,11 @@ public class AmpacheAPICaller
             queryString.addNameValue("filter", id);
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED) {
-            if (apiVersion < 5000000) {
-                queryString.addNameValue("action", "playlist_generate");
-                queryString.addNameValue("mode", "random");
-                queryString.addNameValue("flag", "1");
-            }
-            else {
-                queryString.addNameValue("action", "advanced_search");
-                queryString.addNameValue("random", "1");
-                queryString.addNameValue("rule_1", "favorite");
-                queryString.addNameValue("rule_1_operator", "0");
-                queryString.addNameValue("rule_1_input", "%");
-            }
+            queryString.addNameValue("action", "advanced_search");
+            queryString.addNameValue("random", "1");
+            queryString.addNameValue("rule_1", "favorite");
+            queryString.addNameValue("rule_1_operator", "0");
+            queryString.addNameValue("rule_1_input", "%");
         }
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RECENTLY_PLAYED) {
             queryString.addNameValue("action", "advanced_search");
@@ -481,6 +460,10 @@ public class AmpacheAPICaller
         else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_NONE) {
             queryString.addNameValue("action", "playlist_generate");
         }
+        else if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RADIO) {
+            queryString.addNameValue("action", "live_stream");
+            queryString.addNameValue("filter", id);
+        }
 
         URL callUrl;
         try {
@@ -491,20 +474,22 @@ public class AmpacheAPICaller
             return new Vector<>();
         }
 
-        String tagTag = "tag";
-        if (apiVersion >= 5000000) {
-            tagTag = "genre";
-        }
-
         Vector<String> tagsNeeded = new Vector<>();
-        tagsNeeded.add("title");
-        tagsNeeded.add("album");
-        tagsNeeded.add("artist");
+        String repeatingTag       = "song";
+        if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RADIO) {
+            tagsNeeded.add("name");
+            repeatingTag = "live_stream";
+        }
+        else {
+            tagsNeeded.add("title");
+            tagsNeeded.add("album");
+            tagsNeeded.add("artist");
+            tagsNeeded.add("art");
+            tagsNeeded.add("genre");
+        }
         tagsNeeded.add("url");
-        tagsNeeded.add("art");
-        tagsNeeded.add(tagTag);
 
-        Vector<HashMap<String, String>> results = blockingTransactionMulti(callUrl, "song", tagsNeeded);
+        Vector<HashMap<String, String>> results = blockingTransactionMulti(callUrl, repeatingTag, tagsNeeded);
 
         if (!errorMessage.isEmpty()) {
             return new Vector<>();
@@ -531,16 +516,24 @@ public class AmpacheAPICaller
 
             Track track = new Track();
             track.setId(result.get("id"));
-            track.setAlbumId(result.get("album_id"));
-            track.setArtistId(result.get("artist_id"));
+            if (idType == GetTracksIdType.GET_TRACKS_ID_TYPE_RADIO) {
+                track.setTitle(result.get("name"));
+                track.setArtist(Amproid.getAppContext().getString(R.string.radio_station));
+                track.setAlbum("");
+                track.setRadio(true);
+            }
+            else {
+                track.setAlbumId(result.get("album_id"));
+                track.setArtistId(result.get("artist_id"));
+                track.setPictureUrl(pictureURL);
+                track.setTitle(result.get("title"));
+                track.setAlbum(result.get("album"));
+                track.setArtist(result.get("artist"));
+            }
             track.setUrl(url);
-            track.setPictureUrl(pictureURL);
-            track.setTitle(result.get("title"));
-            track.setAlbum(result.get("album"));
-            track.setArtist(result.get("artist"));
 
-            if (result.containsKey(tagTag)) {
-                track.addTags(result.get(tagTag));
+            if (result.containsKey("genre")) {
+                track.addTags(result.get("genre"));
             }
 
             returnValue.add(track);
@@ -832,10 +825,8 @@ public class AmpacheAPICaller
             }
         }
 
-        int apiVersion = pingForVersion();
-
         QueryStringBuilder tagsQueryString = new QueryStringBuilder();
-        tagsQueryString.addNameValue("action", apiVersion >= 5000000 ? "genres" : "tags");
+        tagsQueryString.addNameValue("action", "genres");
         tagsQueryString.addNameValue("auth", token);
         tagsQueryString.addNameValue("filter", query);
         tagsQueryString.addNameValue("limit", String.valueOf(SEARCH_MAX_TAGS));
@@ -848,7 +839,7 @@ public class AmpacheAPICaller
             return new HashMap<>();
         }
 
-        Vector<HashMap<String, String>> tags = blockingTransactionMulti(url, apiVersion >= 5000000 ? "genre" : "tag", nameTagNeeded);
+        Vector<HashMap<String, String>> tags = blockingTransactionMulti(url, "genre", nameTagNeeded);
         try {
             for (HashMap<String, String> tag : tags) {
                 tag.replace("id", URLEncoder.encode(tag.get("name"), StandardCharsets.UTF_8.toString()));
@@ -859,6 +850,22 @@ public class AmpacheAPICaller
             tags.clear();
         }
 
+        QueryStringBuilder radiosQueryString = new QueryStringBuilder();
+        radiosQueryString.addNameValue("action", "live_streams");
+        radiosQueryString.addNameValue("auth", token);
+        radiosQueryString.addNameValue("filter", query);
+        radiosQueryString.addNameValue("limit", String.valueOf(SEARCH_MAX_RADIOS));
+
+        try {
+            url = new URL(baseUrl.toString() + API_PATH + "?" + radiosQueryString.getQueryString());
+        }
+        catch (Exception e) {
+            errorMessage = e.getMessage();
+            return new HashMap<>();
+        }
+
+        Vector<HashMap<String, String>> radios = blockingTransactionMulti(url, "live_stream", nameTagNeeded);
+
         HashMap<Integer, Vector<HashMap<String, String>>> returnValue = new HashMap<>();
         returnValue.put(SEARCH_RESULTS_SONGS, songs);
         returnValue.put(SEARCH_RESULTS_ALBUMS, albums);
@@ -866,6 +873,7 @@ public class AmpacheAPICaller
         returnValue.put(SEARCH_RESULTS_ARTISTS, artists);
         returnValue.put(SEARCH_RESULTS_ADVANCED, advanced);
         returnValue.put(SEARCH_RESULTS_TAGS, tags);
+        returnValue.put(SEARCH_RESULTS_RADIOS, radios);
 
         return returnValue;
     }
@@ -1131,6 +1139,9 @@ public class AmpacheAPICaller
     }
 
 
+    /*
+    NOTE: this isn't in use currently, but there's a chance it will be needed again in the future
+
     private int pingForVersion()
     {
         if (baseUrl == null) {
@@ -1155,6 +1166,7 @@ public class AmpacheAPICaller
 
         return apiVersionFromString(results.get("version"));
     }
+    */
 
 
     private void setErrorMessage(int stringResource, Object... args)

@@ -26,6 +26,7 @@ import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ARTIST;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
+import static com.pppphun.amproid.service.AmproidService.PREFIX_RADIO;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_SONG;
 
 import android.content.Context;
@@ -223,6 +224,7 @@ public class SearchCache
                     AmpacheAPICaller.SEARCH_RESULTS_ADVANCED,
                     AmpacheAPICaller.SEARCH_RESULTS_TAGS,
                     AmpacheAPICaller.SEARCH_RESULTS_PLAYLISTS,
+                    AmpacheAPICaller.SEARCH_RESULTS_RADIOS,
                     AmpacheAPICaller.SEARCH_RESULTS_ARTISTS,
                     AmpacheAPICaller.SEARCH_RESULTS_ALBUMS,
                     AmpacheAPICaller.SEARCH_RESULTS_SONGS,
@@ -282,8 +284,12 @@ public class SearchCache
                     subtitleResource = R.string.subtitle_playlist;
                 }
                 else if (type == AmpacheAPICaller.SEARCH_RESULTS_TAGS) {
-                    idPrefix = PREFIX_GENRE;
+                    idPrefix         = PREFIX_GENRE;
                     subtitleResource = R.string.subtitle_genre;
+                }
+                else if (type == AmpacheAPICaller.SEARCH_RESULTS_RADIOS) {
+                    idPrefix         = PREFIX_RADIO;
+                    subtitleResource = R.string.radio_station;
                 }
 
                 String id = idPrefix + item.get("id");

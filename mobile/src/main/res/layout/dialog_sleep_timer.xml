@@ -1,9 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ This file is part of Amproid
   ~
-  ~ Copyright (c) 2020. Peter Papp
+  ~ Copyright (c) 2022. Peter Papp
   ~
   ~ Please visit https://github.com/4phun/Amproid for details
   ~
@@ -27,30 +25,6 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <CheckBox
-        android:id="@+id/hide_dot_playlists"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/distance_between"
-        android:layout_marginEnd="@dimen/distance_from_edge"
-        android:ellipsize="middle"
-        android:maxLines="3"
-        android:singleLine="false"
-        android:text="@string/hide_dot_playlists" />
-
-    <CheckBox
-        android:id="@+id/show_radios"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/distance_from_edge"
-        android:layout_marginTop="@dimen/distance_between"
-        android:layout_marginEnd="@dimen/distance_from_edge"
-        android:ellipsize="middle"
-        android:maxLines="3"
-        android:singleLine="false"
-        android:text="@string/show_radios" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -60,18 +34,27 @@
         android:orientation="horizontal">
 
         <TextView
+            android:id="@+id/sleep_time_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="@dimen/distance_between"
-            android:text="@string/item_recommendations_mode_desc" />
+            android:text="@string/sleep_time"
+            android:layout_marginEnd="@dimen/distance_between" />
 
-        <Spinner
-            android:id="@+id/recommendations_mode"
+        <TextView
+            android:id="@+id/sleep_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:entries="@array/recommendations_modes" />
+            android:layout_gravity="center_vertical" />
 
     </LinearLayout>
+
+    <Spinner
+        android:id="@+id/sleep_secs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/separation"
+        android:entries="@array/sleep_times" />
 
 </LinearLayout>

@@ -31,6 +31,7 @@ import static android.support.v4.media.MediaMetadataCompat.METADATA_KEY_TITLE;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static android.widget.LinearLayout.HORIZONTAL;
+import static java.util.Calendar.SECOND;
 
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
@@ -41,8 +42,10 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.icu.text.SimpleDateFormat;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
+import android.media.session.MediaSession;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -68,6 +71,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -79,12 +83,14 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import com.google.android.material.tabs.TabLayout;
 import com.pppphun.amproid.service.AmproidService;
-import com.pppphun.amproid.service.Track;
 import com.pppphun.amproid.shared.Amproid;
 
 import java.net.URL;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Vector;
 
 
@@ -217,20 +223,20 @@ public class AmproidMainActivity extends AppCompatActivity
                 frequencies[i] = 0;
             }
         }
-        int loudnessGain = Math.round(eqSettings.getFloat(getString(R.string.eq_key_loudness_gain), getResources().getInteger(R.integer.default_loudness_gain)));
+        int loudnessGain = Math.round(eqSettings.getFloat(getString(R.string.eq_key_loudness_gain), eqSettings.getBoolean(getString(R.string.eq_key_is_radio), false) ? getResources().getInteger(R.integer.default_loudness_gain_radio) : getResources().getInteger(R.integer.default_loudness_gain_plain)));
 
         short eqNumBands = equalizerSettings.numBands;
         short minLevel   = eqSettings.getShort(getString(R.string.eq_key_min), (short) 0);
         short maxLevel   = eqSettings.getShort(getString(R.string.eq_key_max), (short) 0);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(AmproidMainActivity.this);
-        builder.setTitle(R.string.equalizer);
+        builder.setTitle(eqSettings.getBoolean(getString(R.string.eq_key_is_radio), false) ? R.string.equalizer_radio : R.string.equalizer);
 
         View view = getLayoutInflater().inflate(R.layout.dialog_eq, null);
         builder.setView(view);
 
         final SeekBar loudness = view.findViewById(R.id.loudnessGain);
-        loudness.setMin(0);
+        loudness.setMin(-600);
         loudness.setProgress(loudnessGain);
 
         final LinearLayout mainLayout = view.findViewById(R.id.eq_layout);
@@ -299,7 +305,7 @@ public class AmproidMainActivity extends AppCompatActivity
                 equalizerSettings.bandLevels = levels;
 
                 if (amproidServiceBinder != null) {
-                    amproidServiceBinder.getAmproidService().setAudioEffectsSettings(equalizerSettings.toString(), loudness.getProgress());
+                    amproidServiceBinder.getAmproidService().setAudioEffectsSettings(equalizerSettings.toString(), eqSettings.getBoolean(getString(R.string.eq_key_is_radio), false), loudness.getProgress());
                 }
             }
         });
@@ -334,6 +340,9 @@ public class AmproidMainActivity extends AppCompatActivity
         final CheckBox hideDotPlaylists = view.findViewById(R.id.hide_dot_playlists);
         hideDotPlaylists.setChecked(preferences.getBoolean(getString(R.string.dot_playlists_hide_preference), true));
 
+        final CheckBox showRadios = view.findViewById(R.id.show_radios);
+        showRadios.setChecked(preferences.getBoolean(getString(R.string.show_radios_preference), true));
+
         final TypedArray recommendationsModes = getResources().obtainTypedArray(R.array.recommendations_modes);
         String           forYouModeSetting    = preferences.getString(getString(R.string.recommendations_mode_preference), recommendationsModes.getString(0));
 
@@ -358,8 +367,16 @@ public class AmproidMainActivity extends AppCompatActivity
             {
                 SharedPreferences.Editor preferencesEditor = preferences.edit();
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
+                preferencesEditor.putBoolean(getString(R.string.show_radios_preference), showRadios.isChecked());
                 preferencesEditor.putString(getString(R.string.recommendations_mode_preference), forYouMode.getSelectedItem().toString());
                 preferencesEditor.commit();
+
+                ProgressBar loading = AmproidMainActivity.this.findViewById(R.id.loading);
+                if (loading != null) {
+                    loading.setVisibility(View.VISIBLE);
+                }
+
+                amproidServiceBinder.getAmproidService().optionsChanged();
             }
         });
 
@@ -402,6 +419,73 @@ public class AmproidMainActivity extends AppCompatActivity
                 );
 
         qsgDialogBuilder.show();
+    }
+
+
+    public void menuSleepTimer(MenuItem menuItem)
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(AmproidMainActivity.this);
+        builder.setTitle(R.string.sleep_timer);
+
+        final View view = getLayoutInflater().inflate(R.layout.dialog_sleep_timer, null);
+        builder.setView(view);
+
+        final TextView sleepTime = view.findViewById(R.id.sleep_time);
+        final Spinner sleepSecs = view.findViewById(R.id.sleep_secs);
+
+        int currentSleepSecs = amproidServiceBinder.getAmproidService().getSleepSecs();
+        if (currentSleepSecs > 0) {
+            GregorianCalendar calendar = new GregorianCalendar();
+            calendar.add(SECOND, currentSleepSecs);
+            sleepTime.setText(new SimpleDateFormat("h:mm:ss a", Locale.US).format(calendar.getTime()));
+            sleepSecs.setSelection(0);
+        }
+        else {
+            sleepTime.setText("---");
+            sleepSecs.setSelection(1);
+        }
+
+        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialog, int which)
+            {
+                int selection = sleepSecs.getSelectedItemPosition();
+                switch (selection) {
+                    case 1:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(5 * 60);
+                        break;
+                    case 2:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(10 * 60);
+                        break;
+                    case 3:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(15 * 60);
+                        break;
+                    case 4:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(30 * 60);
+                        break;
+                    case 5:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(60 * 60);
+                        break;
+                    case 6:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(90 * 60);
+                        break;
+                    default:
+                        amproidServiceBinder.getAmproidService().startSleepTimer(0);
+                }
+            }
+        });
+
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialog, int which)
+            {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
     }
 
 
@@ -490,46 +574,67 @@ public class AmproidMainActivity extends AppCompatActivity
 
     public void showComingUpTracks()
     {
-        if (amproidServiceBinder == null) {
+        MediaController mediaController = getMediaController();
+        if (mediaController == null) {
             return;
         }
 
-        Vector<Track> list = amproidServiceBinder.getAmproidService().getComingUpTracks();
-        if (list.size() < 1) {
+        List<MediaSession.QueueItem> list = mediaController.getQueue();
+        if ((list == null) || (list.size() < 1)) {
             return;
         }
 
-        ListView playlistView = new ListView(AmproidMainActivity.this);
-        playlistView.setPadding(Math.round(getResources().getDimension(R.dimen.distance_from_edge)), Math.round(getResources().getDimension(R.dimen.separation)), Math.round(getResources().getDimension(R.dimen.distance_from_edge)), 0);
-        playlistView.setDivider(null);
-
-        ArrayAdapter<String> playlistAdapter = new ArrayAdapter<>(AmproidMainActivity.this, R.layout.dialog_playlist_item);
+        ArrayAdapter<String> queueAdapter = new ArrayAdapter<>(AmproidMainActivity.this, R.layout.dialog_queue_item);
         for (int i = 0; i < list.size(); i++) {
-            playlistAdapter.add(String.format(Locale.US, "%d. %s", i + 1, list.get(i).getTitle()));
+            try {
+                queueAdapter.add(String.format(Locale.US, "%d. %s", i + 1, list.get(i).getDescription().getTitle()));
+            }
+            catch (Exception ignored) {
+            }
         }
-        playlistView.setAdapter(playlistAdapter);
+        if (queueAdapter.isEmpty()) {
+            return;
+        }
 
-        playlistView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        ListView queueListView = new ListView(AmproidMainActivity.this);
+        queueListView.setPadding(Math.round(getResources().getDimension(R.dimen.distance_from_edge)), Math.round(getResources().getDimension(R.dimen.separation)), Math.round(getResources().getDimension(R.dimen.distance_from_edge)), 0);
+        queueListView.setDivider(null);
+        queueListView.setAdapter(queueAdapter);
+
+        queueListView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id)
             {
-                if (amproidServiceBinder != null) {
-                    amproidServiceBinder.getAmproidService().skipToComingUpIndex(position);
+                try {
+                    mediaController.getTransportControls().skipToQueueItem(position);
+                }
+                catch (Exception ignored) {
                 }
             }
         });
 
-        AlertDialog.Builder playlistDialogBuilder = new AlertDialog.Builder(AmproidMainActivity.this).setTitle(R.string.tracks).setView(playlistView).setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
-        {
-            @Override
-            public void onClick(DialogInterface dialog, int which)
-            {
-                dialog.cancel();
-            }
-        });
+        String title;
         try {
-            playlistDialogBuilder.show();
+            title = mediaController.getQueueTitle().toString();
+        }
+        catch (Exception ignored) {
+            title = getString(R.string.tracks);
+        }
+
+        AlertDialog.Builder queueDialogBuilder = new AlertDialog.Builder(AmproidMainActivity.this)
+                .setTitle(title)
+                .setView(queueListView)
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which)
+                        {
+                            dialog.cancel();
+                        }
+                    });
+        try {
+            queueDialogBuilder.show();
         }
         catch (WindowManager.BadTokenException ignored) {
         }
@@ -543,7 +648,7 @@ public class AmproidMainActivity extends AppCompatActivity
             if ((tabs != null) && (tabs.getSelectedTabPosition() != 0)) {
                 String tag = null;
                 try {
-                    tag = (String) tabs.getTabAt(tabs.getSelectedTabPosition()).getTag();
+                    tag = (String) Objects.requireNonNull(tabs.getTabAt(tabs.getSelectedTabPosition())).getTag();
                 }
                 catch (Exception ignored) {
                 }
@@ -577,7 +682,10 @@ public class AmproidMainActivity extends AppCompatActivity
             id = mediaBrowser.getRoot();
         }
         mediaBrowser.subscribe(id, new MediaSubscriptionCallback(this));
-        lastSubscription = id;
+
+        if (!id.equals(mediaBrowser.getRoot())) {
+            lastSubscription = id;
+        }
     }
 
 
@@ -808,7 +916,7 @@ public class AmproidMainActivity extends AppCompatActivity
                                             for (int i = 0; i < tabs.getTabCount(); i++) {
                                                 String tag = null;
                                                 try {
-                                                    tag = (String) tabs.getTabAt(i).getTag();
+                                                    tag = (String) Objects.requireNonNull(tabs.getTabAt(i)).getTag();
                                                 }
                                                 catch (Exception ignored) {
                                                 }

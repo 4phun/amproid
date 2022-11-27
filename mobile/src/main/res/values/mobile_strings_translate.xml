@@ -57,11 +57,15 @@
     <string name="about_text" tools:ignore="PluralsCandidate">Ampache client for Android\n\nCopyright © 2019-%d Peter Papp\n\nhttps://github.com/4phun/Amproid"</string>
     <string name="now_playing">Now Playing</string>
     <string name="qsg">Quick Start Guide</string>
+    <string name="sleep_timer">Sleep Timer</string>
+    <string name="sleep_time">Stop Time:</string>
 
     <string name="equalizer">Equalizer</string>
+    <string name="equalizer_radio">Equalizer - Radio Stations</string>
     <string name="loudness">Loudness</string>
 
     <string name="hide_dot_playlists">Hide playlists whose name starts with a dot</string>
+    <string name="show_radios">Show Radio Stations</string>
 
     <string name="tracks">Tracks</string>
 

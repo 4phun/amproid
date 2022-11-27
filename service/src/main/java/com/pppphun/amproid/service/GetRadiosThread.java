@@ -101,33 +101,19 @@ public class GetRadiosThread extends ThreadCancellable
             return;
         }
 
-        if (resultToSend != null) {
-            ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
+        ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
 
-            for (HashMap<String, String> radio : radios) {
-                if (!radio.containsKey("url") || !radio.containsKey("name")) {
-                    continue;
-                }
-
-                String name = StringEscapeUtils.unescapeHtml4(radio.get("name"));
-                String url  = radio.get("url");
-
-                results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
-                        .setMediaId(PREFIX_RADIO + url)
-                        .setTitle(name)
-                        .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+        for (HashMap<String, String> radio : radios) {
+            if (!radio.containsKey("id") || !radio.containsKey("name")) {
+                continue;
             }
 
-            resultToSend.sendResult(results);
-            return;
+            results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                    .setMediaId(PREFIX_RADIO + radio.get("id"))
+                    .setTitle(StringEscapeUtils.unescapeHtml4(radio.get("name")))
+                    .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
         }
 
-        if (isCancelled()) {
-            return;
-        }
-
-        Bundle arguments = new Bundle();
-        arguments.putSerializable("radios", radios);
-        Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_radios, arguments);
+        resultToSend.sendResult(results);
     }
 }

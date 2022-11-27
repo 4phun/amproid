@@ -33,7 +33,9 @@
 
     <string name="eq_preferences">eq</string>
     <string name="eq_settings_preference">eq_settings</string>
+    <string name="eq_settings_radio_preference">eq_radio_settings</string>
     <string name="eq_loudness_gain_preference">loudness_gain</string>
+    <string name="eq_loudness_gain_radio_preference">loudness_gain_radio</string>
 
     <string name="play_mode_preferences">play_mode_restore</string>
     <string name="play_mode_play_mode_preference">play_mode</string>
@@ -46,7 +48,11 @@
     <string name="play_mode_random_recent_count_preference">random_recent_count</string>
     <string name="playlist_cache_preferences">playlist_cache</string>
 
+    <string name="killed_by_os_detection_preferences">killed_by_os_detector</string>
+    <string name="killed_by_os_detection_preference">killed_by_os_detection</string>
+
     <string name="item_playlists_id">playlists</string>
+    <string name="item_radios_id">radios</string>
     <string name="item_random_id">random_shuffle</string>
     <string name="item_random_recent_id">random_new</string>
     <string name="item_recent_id">recent</string>

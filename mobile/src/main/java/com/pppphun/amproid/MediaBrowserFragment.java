@@ -38,6 +38,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v4.media.MediaBrowserCompat;
 import android.text.TextUtils;
+import android.transition.Transition;
+import android.transition.TransitionInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -163,6 +165,20 @@ public class MediaBrowserFragment extends Fragment
 
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        try {
+            Transition transition = TransitionInflater.from(requireContext()).inflateTransition(R.transition.fragment_change);
+            setEnterTransition(transition);
+            setExitTransition(transition);
+        }
+        catch (Exception ignored) {
+        }
+    }
+
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState)
     {
         super.onViewCreated(view, savedInstanceState);
@@ -219,7 +235,7 @@ public class MediaBrowserFragment extends Fragment
 
             String subTitle = "";
             try {
-                subTitle = Objects.requireNonNull(children.get(i).getDescription().getSubtitle().toString());
+                subTitle = Objects.requireNonNull(Objects.requireNonNull(children.get(i).getDescription().getSubtitle()).toString());
             }
             catch (Exception ignored) {
             }

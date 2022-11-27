@@ -53,6 +53,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -68,7 +69,6 @@ import androidx.media.session.MediaButtonReceiver;
 
 import com.pppphun.amproid.shared.Amproid;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URL;
@@ -98,18 +98,17 @@ public class AmproidService extends MediaBrowserServiceCompat
     final static int PLAY_MODE_ARTIST        = 5;
     final static int PLAY_MODE_GENRE         = 6;
     final static int PLAY_MODE_RANDOM_RECENT = 7;
-
-    // TODO: support radio stations
-    // TODO: this must depend on Ampache version
-    private final static boolean RADIO_ENABLED = false;
+    final static int PLAY_MODE_RADIO         = 8;
 
     private final static int    NOTIFICATION_ID         = 1001;
     private final static String NOTIFICATION_CHANNEL_ID = "AmproidServiceNotificationChannel";
 
     private final static int MAX_AUTH_ATTEMPTS = 50;
 
-    Equalizer.Settings equalizerSettings   = null;
-    int                loudnessGainSetting = 0;
+    Equalizer.Settings equalizerSettingsPlain   = null;
+    Equalizer.Settings equalizerSettingsRadio   = null;
+    int                loudnessGainSettingPlain = 0;
+    int                loudnessGainSettingRadio = 0;
 
     private final PlaybackStateCompat.Builder stateBuilder         = new PlaybackStateCompat.Builder();
     private final MediaMetadataCompat.Builder metadataBuilder      = new MediaMetadataCompat.Builder();
@@ -141,19 +140,20 @@ public class AmproidService extends MediaBrowserServiceCompat
     private       String        browseId         = null;
     private final Vector<Track> comingUpTracks   = new Vector<>();
     private       int           comingUpIndex    = 0;
-    private       boolean       pausedByUser     = false;
+    private       String        comingUpId       = null;
+    private       boolean       pausedByUser     = true;
     private       boolean       haveAudioFocus   = false;
     private       Bundle        searchParameters = null;
     private       String        randomTags       = "";
     private       int           randomCountdown  = 0;
     private       int           recentSongCount  = 150;
+    private       int           sleepSecs        = -99;
 
     private int   mediaSessionUpdateDurationPositionIfPlayingLastDuration = -2;
     private Timer positionTimer;
 
     private final Vector<ThreadCancellable> startedThreads = new Vector<>();
 
-    private Vector<HashMap<String, String>> radios               = new Vector<>();
     private PlaylistsCache                  playlistsCache       = null;
     private RecommendationsCache            recommendationsCache = null;
     private SearchCache                     searchCache          = null;
@@ -196,6 +196,23 @@ public class AmproidService extends MediaBrowserServiceCompat
                 catch (Exception ignored) {
                 }
             }
+        }
+    };
+
+    private final Runnable sleepTimer = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            if (sleepSecs < -1) {
+                return;
+            }
+            if (sleepSecs > 1) {
+                sleepSecs--;
+                mainHandler.postAtTime(sleepTimer, SystemClock.uptimeMillis() + 1000);
+                return;
+            }
+            mediaSessionCallback.onStop();
         }
     };
 
@@ -279,28 +296,16 @@ public class AmproidService extends MediaBrowserServiceCompat
         returnValue.putShort(getString(R.string.eq_key_min), mediaPlayer.equalizer.getBandLevelRange()[0]);
         returnValue.putShort(getString(R.string.eq_key_max), mediaPlayer.equalizer.getBandLevelRange()[1]);
         returnValue.putIntArray(getString(R.string.eq_key_freqs), frequencies);
+        returnValue.putBoolean(getString(R.string.eq_key_is_radio), mediaPlayer.getTrack().isRadio());
         returnValue.putFloat(getString(R.string.eq_key_loudness_gain), Math.round(loudnessGain));
 
         return returnValue;
     }
 
 
-    public Vector<Track> getComingUpTracks()
+    public int getSleepSecs()
     {
-        int[] modes = {PLAY_MODE_ARTIST, PLAY_MODE_ALBUM, PLAY_MODE_PLAYLIST, PLAY_MODE_GENRE, PLAY_MODE_RANDOM_RECENT};
-
-        boolean modeAllowed = false;
-        for (int m : modes) {
-            if (playMode == m) {
-                modeAllowed = true;
-                break;
-            }
-        }
-        if (!modeAllowed || (comingUpTracks.size() < 1)) {
-            return new Vector<>();
-        }
-
-        return comingUpTracks;
+        return Math.max(sleepSecs, 0);
     }
 
 
@@ -324,7 +329,14 @@ public class AmproidService extends MediaBrowserServiceCompat
     {
         super.onCreate();
 
-        loudnessGainSetting = getResources().getInteger(R.integer.default_loudness_gain);
+        SharedPreferences killedByOSDetector = getSharedPreferences(getString(R.string.killed_by_os_detection_preferences), Context.MODE_PRIVATE);
+        pausedByUser = killedByOSDetector.getInt(getString(R.string.killed_by_os_detection_preference), R.integer.crashed) == R.integer.crashed;
+        SharedPreferences.Editor killedByOSDetectorEditor = killedByOSDetector.edit();
+        killedByOSDetectorEditor.putInt(getString(R.string.killed_by_os_detection_preference), R.integer.crashed);
+        killedByOSDetectorEditor.apply();
+
+        loudnessGainSettingPlain = getResources().getInteger(R.integer.default_loudness_gain_plain);
+        loudnessGainSettingRadio = getResources().getInteger(R.integer.default_loudness_gain_radio);
 
         stateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY |
                 PlaybackStateCompat.ACTION_PAUSE |
@@ -379,14 +391,25 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         startForeground(NOTIFICATION_ID, notificationBuilder.build());
 
-        SharedPreferences preferences             = getSharedPreferences(getString(R.string.eq_preferences), Context.MODE_PRIVATE);
-        String            equalizerSettingsString = preferences.getString(getString(R.string.eq_settings_preference), null);
-        loudnessGainSetting = preferences.getInt(getString(R.string.eq_loudness_gain_preference), getResources().getInteger(R.integer.default_loudness_gain));
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.eq_preferences), Context.MODE_PRIVATE);
+        String equalizerSettingsPlainString = preferences.getString(getString(R.string.eq_settings_preference), null);
+        String equalizerSettingsRadioString = preferences.getString(getString(R.string.eq_settings_radio_preference), equalizerSettingsPlainString);
+        loudnessGainSettingPlain = preferences.getInt(getString(R.string.eq_loudness_gain_preference), getResources().getInteger(R.integer.default_loudness_gain_plain));
+        loudnessGainSettingRadio = preferences.getInt(getString(R.string.eq_loudness_gain_radio_preference), getResources().getInteger(R.integer.default_loudness_gain_radio));
 
-        if (equalizerSettingsString != null) try {
-            equalizerSettings = new Equalizer.Settings(equalizerSettingsString);
+        if (equalizerSettingsPlainString != null) {
+            try {
+                equalizerSettingsPlain = new Equalizer.Settings(equalizerSettingsPlainString);
+            }
+            catch (Exception ignored) {
+            }
         }
-        catch (Exception ignored) {
+        if (equalizerSettingsRadioString != null) {
+            try {
+                equalizerSettingsRadio = new Equalizer.Settings(equalizerSettingsRadioString);
+            }
+            catch (Exception ignored) {
+            }
         }
 
         audioFocusChangeListener = focusChange ->
@@ -470,11 +493,16 @@ public class AmproidService extends MediaBrowserServiceCompat
     public void onLoadChildren(@NonNull final String parentMediaId, @NonNull final Result<List<MediaBrowserCompat.MediaItem>> result)
     {
         if (parentMediaId.compareTo(getString(R.string.item_root_id)) == 0) {
+            final SharedPreferences preferences = getSharedPreferences(getString(R.string.options_preferences), Context.MODE_PRIVATE);
+
             ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
 
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_recommendations_id)).setTitle(getString(R.string.item_recommendations_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_search_results_id)).setTitle(getString(R.string.item_search_results_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_playlists_id)).setTitle(getString(R.string.item_playlists_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+            if (preferences.getBoolean(getString(R.string.show_radios_preference), true)) {
+                results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_radios_id)).setTitle(getString(R.string.item_radios_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+            }
             results.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder().setMediaId(getString(R.string.item_recent_id)).setTitle(getString(R.string.item_recent_desc)).build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
 
             result.sendResult(results);
@@ -515,6 +543,14 @@ public class AmproidService extends MediaBrowserServiceCompat
             GetRecentAlbumsThread getRecentAlbums = new GetRecentAlbumsThread(authToken, serverUrl, mainHandler, result);
             startedThreads.add(getRecentAlbums);
             getRecentAlbums.start();
+        }
+
+        if (parentMediaId.compareTo(getString(R.string.item_radios_id)) == 0) {
+            result.detach();
+
+            GetRadiosThread getRadios = new GetRadiosThread(authToken, serverUrl, mainHandler, result);
+            startedThreads.add(getRadios);
+            getRadios.start();
         }
     }
 
@@ -559,12 +595,14 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
+    @SuppressLint("ApplySharedPref")
     @Override
     public void onDestroy()
     {
         try {
             mainHandler.removeCallbacks(getAuthToken);
             mainHandler.removeCallbacks(mediaSessionUpdateDurationPositionIfPlaying);
+            mainHandler.removeCallbacks(sleepTimer);
             positionTimer.cancel();
             positionTimer.purge();
         }
@@ -601,6 +639,11 @@ public class AmproidService extends MediaBrowserServiceCompat
             notificationManager.cancelAll();
         }
 
+        SharedPreferences killedByOSDetector = getSharedPreferences(getString(R.string.killed_by_os_detection_preferences), Context.MODE_PRIVATE);
+        SharedPreferences.Editor killedByOSDetectorEditor = killedByOSDetector.edit();
+        killedByOSDetectorEditor.putInt(getString(R.string.killed_by_os_detection_preference), R.integer.normal_quit);
+        killedByOSDetectorEditor.commit();
+
         super.onDestroy();
     }
 
@@ -615,42 +658,78 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
+    public void optionsChanged()
+    {
+        notifyChildrenChanged(getString(R.string.item_root_id));
+        if (recommendationsCache != null) {
+            recommendationsCache.refreshRecommendations();
+        }
+        if (playlistsCache != null) {
+            playlistsCache.refreshPlaylists();
+        }
+
+        mainHandler.postDelayed(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (amproidServiceBinderCallback != null) {
+                        amproidServiceBinderCallback.showLoading();
+                    }
+                }
+            },
+        250);
+    }
+
+
     public void refreshRootItem(String rootItem)
     {
         if (rootItem.compareTo(getString(R.string.item_recommendations_id)) == 0) {
             if (recommendationsCache != null) {
                 recommendationsCache.refreshRecommendations();
-                return;
             }
         }
         else if (rootItem.compareTo(getString(R.string.item_search_results_id)) == 0) {
             if (searchCache != null) {
                 searchCache.refreshSearch(searchParameters);
-                return;
             }
         }
         else if (rootItem.compareTo(getString(R.string.item_playlists_id)) == 0) {
             if (playlistsCache != null) {
                 playlistsCache.refreshPlaylists();
-                return;
             }
         }
-        notifyChildrenChanged(rootItem);
     }
 
 
     @SuppressLint("ApplySharedPref")
-    public void setAudioEffectsSettings(String equalizerSettingsString, int loudnessGainSetting)
+    public void setAudioEffectsSettings(String equalizerSettingsString, boolean isRadio, int loudnessGainSetting)
     {
-        this.loudnessGainSetting = loudnessGainSetting;
+        if (isRadio) {
+            loudnessGainSettingRadio = loudnessGainSetting;
+        }
+        else {
+            loudnessGainSettingPlain = loudnessGainSetting;
+        }
 
         try {
-            equalizerSettings = new Equalizer.Settings(equalizerSettingsString);
+            if (isRadio) {
+                equalizerSettingsRadio = new Equalizer.Settings(equalizerSettingsString);
+            }
+            else {
+                equalizerSettingsPlain = new Equalizer.Settings(equalizerSettingsString);
+            }
 
             SharedPreferences        preferences       = getSharedPreferences(getString(R.string.eq_preferences), Context.MODE_PRIVATE);
             SharedPreferences.Editor preferencesEditor = preferences.edit();
-            preferencesEditor.putString(getString(R.string.eq_settings_preference), equalizerSettings.toString());
-            preferencesEditor.putInt(getString(R.string.eq_loudness_gain_preference), loudnessGainSetting);
+            if (isRadio) {
+                preferencesEditor.putString(getString(R.string.eq_settings_radio_preference), equalizerSettingsRadio.toString());
+                preferencesEditor.putInt(getString(R.string.eq_loudness_gain_radio_preference), loudnessGainSetting);
+            }
+            else {
+                preferencesEditor.putString(getString(R.string.eq_settings_preference), equalizerSettingsPlain.toString());
+                preferencesEditor.putInt(getString(R.string.eq_loudness_gain_preference), loudnessGainSetting);
+            }
             preferencesEditor.commit();
         }
         catch (Exception ignored) {
@@ -667,16 +746,20 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
-    public void skipToComingUpIndex(int index)
+    public void startSleepTimer(int secs)
     {
-        if ((playMode != PLAY_MODE_ARTIST) && (playMode != PLAY_MODE_ALBUM) && (playMode != PLAY_MODE_PLAYLIST) && (playMode != PLAY_MODE_GENRE) && (playMode != PLAY_MODE_RANDOM_RECENT)) {
+        // 0 cancels current countdown
+        if (secs == 0) {
+            mainHandler.removeCallbacks(sleepTimer);
+            sleepSecs = -99;
             return;
         }
-        if ((index < 0) || (index >= comingUpTracks.size())) {
-            return;
+
+        if (secs < 0) {
+            secs = 180;
         }
-        comingUpIndex = index;
-        startTrack(comingUpTracks.get(comingUpIndex));
+        sleepSecs = secs;
+        mainHandler.postAtTime(sleepTimer, SystemClock.uptimeMillis() + 1000);
     }
 
 
@@ -732,10 +815,24 @@ public class AmproidService extends MediaBrowserServiceCompat
             return;
         }
 
+        if (playMode == PLAY_MODE_RADIO) {
+            playMode = PLAY_MODE_RANDOM;
+        }
+
         int trackIndex = 0;
         if ((playMode == PLAY_MODE_PLAYLIST) || (playMode == PLAY_MODE_GENRE) || (playMode == PLAY_MODE_ARTIST) || (playMode == PLAY_MODE_ALBUM) || (playMode == PLAY_MODE_RANDOM_RECENT)) {
             comingUpTracks.clear();
             comingUpTracks.addAll(tracks);
+
+            if ((comingUpIndex >= 0) && (comingUpIndex < tracks.size())) {
+                trackIndex = comingUpIndex;
+            }
+            else {
+                // this could happen if playlist is modified on Ampache server between Amproid restarts
+                comingUpIndex = trackIndex;
+            }
+
+            comingUpId = data.getString("ampacheId", null);
 
             List<MediaSessionCompat.QueueItem> queue = new ArrayList<>();
             for (int i = 0; i < comingUpTracks.size(); i++) {
@@ -746,19 +843,12 @@ public class AmproidService extends MediaBrowserServiceCompat
                         .build(), i));
             }
             mediaSession.setQueue(queue);
+
             if (data.containsKey("queueTitle")) {
                 mediaSession.setQueueTitle(data.getString("queueTitle"));
             }
-            else {
+            else if (!data.containsKey("multiBrowse")) {
                 mediaSession.setQueueTitle("Tracks in queue");
-            }
-
-            if ((comingUpIndex >= 0) && (comingUpIndex < tracks.size())) {
-                trackIndex = comingUpIndex;
-            }
-            else {
-                // this could happen if playlist is modified on Ampache server between Amproid restarts
-                comingUpIndex = trackIndex;
             }
         }
         else {
@@ -789,9 +879,15 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
         authAttempts = 0;
 
-        playlistsCache       = new PlaylistsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
-        recommendationsCache = new RecommendationsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
-        searchCache          = new SearchCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler, (searchParameters == null));
+        if (playlistsCache == null) {
+            playlistsCache = new PlaylistsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
+        }
+        if (recommendationsCache == null) {
+            recommendationsCache = new RecommendationsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
+        }
+        if (searchCache == null) {
+            searchCache = new SearchCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler, (searchParameters == null));
+        }
 
         if (searchParameters != null) {
             // continued from onStartCommand or onPlayFromSearch (wasn't logged in)
@@ -799,57 +895,84 @@ public class AmproidService extends MediaBrowserServiceCompat
             return;
         }
 
-        loadPlayMode();
-
+        String ampacheId = "";
         if (playMode == PLAY_MODE_PLAYLIST) {
-            fakeTrackMessage(R.string.getting_playlist_tracks, "");
+            ampacheId = playlistId;
         }
         else if (playMode == PLAY_MODE_GENRE) {
-            fakeTrackMessage(R.string.getting_genre_tracks, "");
+            ampacheId = genreId;
         }
         else if (playMode == PLAY_MODE_ARTIST) {
-            fakeTrackMessage(R.string.getting_artist_tracks, "");
+            ampacheId = artistId;
         }
         else if (playMode == PLAY_MODE_ALBUM) {
-            fakeTrackMessage(R.string.getting_album_tracks, "");
-        }
-        else if (playMode == PLAY_MODE_RANDOM_RECENT) {
-            fakeTrackMessage(R.string.getting_recent_random, "");
+            ampacheId = albumId;
         }
 
-        String ampacheId = "";
-        switch (playMode) {
-            case PLAY_MODE_PLAYLIST:
+        // this service just started, or an item was picked just before re-login was needed
+        if ((playMode == PLAY_MODE_UNKNOWN) || (!ampacheId.isEmpty() && !ampacheId.equals(comingUpId))) {
+            if (playMode == PLAY_MODE_UNKNOWN) {
+                loadPlayMode();
+            }
+
+            if (playMode == PLAY_MODE_PLAYLIST) {
+                fakeTrackMessage(R.string.getting_playlist_tracks, "");
                 ampacheId = playlistId;
-
-                // smart playlists are generated dynamically, so it's meaningless to start one from where it left off
                 if (ampacheId.startsWith("smart_")) {
+                    // smart playlists are generated dynamically, so it's meaningless to start one from where it left off, because tracks must be obtained again
                     comingUpIndex = 0;
                 }
-
-                break;
-            case PLAY_MODE_GENRE:
+            }
+            else if (playMode == PLAY_MODE_GENRE) {
+                fakeTrackMessage(R.string.getting_genre_tracks, "");
                 ampacheId = genreId;
                 comingUpIndex = 0;
-                break;
-            case PLAY_MODE_ARTIST:
+            }
+            else if (playMode == PLAY_MODE_ARTIST) {
+                fakeTrackMessage(R.string.getting_artist_tracks, "");
                 ampacheId = artistId;
                 comingUpIndex = 0;
-                break;
-            case PLAY_MODE_ALBUM:
+            }
+            else if (playMode == PLAY_MODE_ALBUM) {
+                fakeTrackMessage(R.string.getting_album_tracks, "");
                 ampacheId = albumId;
-                break;
-            case PLAY_MODE_BROWSE:
+            }
+            else if (playMode == PLAY_MODE_BROWSE) {
                 ampacheId = browseId;
-                break;
-            case PLAY_MODE_RANDOM_RECENT:
+            }
+            else if (playMode == PLAY_MODE_RANDOM_RECENT) {
+                fakeTrackMessage(R.string.getting_recent_random, "");
                 ampacheId = String.valueOf(recentSongCount);
                 comingUpIndex = 0;
+            }
+
+            stateUpdate(PlaybackStateCompat.STATE_CONNECTING, 0);
+
+            // this will start play when the async operation is completed
+            GetTracksThread getTracks = new GetTracksThread(authToken, Amproid.getServerUrl(selectedAccount), playMode, ampacheId, randomTags, randomCountdown, mainHandler);
+            startedThreads.add(getTracks);
+            getTracks.start();
+
+            return;
         }
 
-        stateUpdate(PlaybackStateCompat.STATE_CONNECTING, 0);
+        // service was already running, only server session timed out, needed to re-login
 
-        // this will start play when the async operation is completed
+        if ((playMode == PLAY_MODE_PLAYLIST) || (playMode == PLAY_MODE_GENRE) || (playMode == PLAY_MODE_ARTIST) || (playMode == PLAY_MODE_ALBUM) || (playMode == PLAY_MODE_RANDOM_RECENT)) {
+            Vector<String> trackIds = new Vector<>();
+            for (Track track: comingUpTracks) {
+                trackIds.add(track.getId());
+            }
+            GetTracksThread getTracks = new GetTracksThread(authToken, Amproid.getServerUrl(selectedAccount), PLAY_MODE_BROWSE, String.join(",", trackIds), randomTags, randomCountdown, mainHandler);
+            startedThreads.add(getTracks);
+            getTracks.start();
+            return;
+        }
+
+        ampacheId = "";
+        if (playMode == PLAY_MODE_BROWSE) {
+            ampacheId = browseId;
+        }
         GetTracksThread getTracks = new GetTracksThread(authToken, Amproid.getServerUrl(selectedAccount), playMode, ampacheId, randomTags, randomCountdown, mainHandler);
         startedThreads.add(getTracks);
         getTracks.start();
@@ -1066,7 +1189,6 @@ public class AmproidService extends MediaBrowserServiceCompat
         if (!arguments.containsKey(getString(R.string.msg_action))) {
             return;
         }
-
         String action = arguments.getString(getString(R.string.msg_action));
 
         String errorMessage = arguments.getString(getString(R.string.msg_error_message), "");
@@ -1081,7 +1203,6 @@ public class AmproidService extends MediaBrowserServiceCompat
             if (!arguments.containsKey(getString(R.string.msg_async_finished_type))) {
                 return;
             }
-
             int asyncType = arguments.getInt(getString(R.string.msg_async_finished_type));
 
             if (asyncType == getResources().getInteger(R.integer.async_validate_token)) {
@@ -1176,19 +1297,6 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
             else if (asyncType == getResources().getInteger(R.integer.playlists_now_valid)) {
                 notifyChildrenChanged(getString(R.string.item_playlists_id));
-            }
-            else if (asyncType == getResources().getInteger((R.integer.async_get_radios))) {
-                if (!errorMessage.isEmpty()) {
-                    if (amproidServiceBinderCallback != null) {
-                        amproidServiceBinderCallback.showToast(errorMessage);
-                    }
-                    return;
-                }
-                @SuppressWarnings("unchecked")
-                Vector<HashMap<String, String>> radios = (Vector<HashMap<String, String>>) arguments.getSerializable("radios");
-                if ((radios != null) && !radios.isEmpty()) {
-                    AmproidService.this.radios = radios;
-                }
             }
             else if (asyncType == getResources().getInteger(R.integer.async_image_downloader)) {
                 if ((mediaPlayer != null) && (arguments.containsKey("url"))) {
@@ -1298,12 +1406,10 @@ public class AmproidService extends MediaBrowserServiceCompat
     public interface IAmproidServiceBinderCallback
     {
         void quitNow();
-
+        void showLoading();
         @SuppressWarnings("unused")
         void showToast(int stringResource);
-
         void showToast(String string);
-
         void startAuthenticatorActivity();
     }
 
@@ -1502,9 +1608,6 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
 
             if (mediaId.startsWith(PREFIX_RADIO)) {
-                if (!RADIO_ENABLED) {
-                    return;
-                }
                 try {
                     if ((mediaPlayer != null) && mediaPlayer.isPlaying()) {
                         mediaPlayer.pause();
@@ -1512,44 +1615,21 @@ public class AmproidService extends MediaBrowserServiceCompat
                 }
                 catch (Exception ignored) {}
 
-                browseId = mediaId.replace(PREFIX_RADIO, "");
-
-                URL url;
-                try {
-                    url = new URL(browseId);
-                }
-                catch (Exception e) {
-                    fakeTrackMessage(R.string.error_invalid_radio_url, "");
-                    return;
-                }
-
-                String name = getString(R.string.radio_station);
-                for (HashMap<String, String> radio : radios) {
-                    String radioUrl = radio.get("url");
-                    if ((radioUrl != null) && (radioUrl.compareTo(browseId) == 0)) {
-                        name = StringEscapeUtils.unescapeHtml4(radio.get("name"));
-                    }
-                }
-
-                // pretend that this is just another track in shuffle
-                playMode = PLAY_MODE_RANDOM;
-
-                Track track = new Track();
-                track.setTitle(name);
-                track.setArtist("");
-                track.setAlbum(getString(R.string.radio_station));
-                track.setRadio(true);
-                track.setUrl(url);
-
-                startTrack(track);
-
                 if ((notificationBuilder != null) && (notificationManager != null)) {
                     notificationBuilder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
                     notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
                 }
-
                 metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
                 mediaSession.setMetadata(metadataBuilder.build());
+
+                browseId = mediaId.replace(PREFIX_RADIO, "");
+
+                playMode = PLAY_MODE_RADIO;
+                browseId = mediaId.replace(PREFIX_RADIO, "");
+
+                GetTracksThread getTracks = new GetTracksThread(authToken, serverUrl, playMode, browseId, randomTags, randomCountdown, mainHandler);
+                startedThreads.add(getTracks);
+                getTracks.start();
             }
         }
 
@@ -1774,8 +1854,4 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
         }
     }
-
-
-
-
 }

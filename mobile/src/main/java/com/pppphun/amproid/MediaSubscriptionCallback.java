@@ -31,6 +31,8 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Vector;
 
 
 final class MediaSubscriptionCallback extends MediaBrowserCompat.SubscriptionCallback
@@ -56,10 +58,11 @@ final class MediaSubscriptionCallback extends MediaBrowserCompat.SubscriptionCal
         if (parentId.equals(amproidMainActivity.getMediaBrowser().getRoot())) {
             TabLayout tabs = amproidMainActivity.findViewById(R.id.tabs);
             if (tabs != null) {
+                int addedCount = 0;
                 for (int i = 0; i < children.size(); i++) {
                     String title = amproidMainActivity.getString(R.string.unknown);
                     try {
-                        title = children.get(i).getDescription().getTitle().toString();
+                        title = Objects.requireNonNull(children.get(i).getDescription().getTitle()).toString();
                     }
                     catch (Exception ignored) {
                     }
@@ -70,16 +73,12 @@ final class MediaSubscriptionCallback extends MediaBrowserCompat.SubscriptionCal
                     while (!found && (j < tabs.getTabCount())) {
                         String tag = null;
                         try {
-                            tag = (String) tabs.getTabAt(j).getTag();
+                            tag = (String) Objects.requireNonNull(tabs.getTabAt(j)).getTag();
                         }
                         catch (Exception ignored) {
                         }
-                        if (tag == null) {
-                            j++;
-                            continue;
-                        }
 
-                        if (tag.equals(id)) {
+                        if ((tag != null) && tag.equals(id)) {
                             found = true;
                         }
                         else {
@@ -88,7 +87,42 @@ final class MediaSubscriptionCallback extends MediaBrowserCompat.SubscriptionCal
                     }
                     if (!found) {
                         tabs.addTab(tabs.newTab().setText(title).setTag(id));
+                        addedCount++;
                     }
+                }
+                if (addedCount == 1) {
+                    tabs.selectTab(tabs.getTabAt(tabs.getTabCount() - 1));
+                }
+
+                Vector<Integer> toBeRemoved = new Vector<>();
+                for (int i = 0; i < tabs.getTabCount(); i++) {
+                    String tag = null;
+                    try {
+                        tag = (String) Objects.requireNonNull(tabs.getTabAt(i)).getTag();
+                    }
+                    catch (Exception ignored) {
+                    }
+                    if ((tag == null) || tag.equals(amproidMainActivity.getString(R.string.fragment_tag_now_playing))) {
+                        continue;
+                    }
+
+                    boolean found = false;
+                    int     j     = 0;
+                    while (!found && (j < children.size())) {
+                        String id = children.get(j).getDescription().getMediaId();
+                        if ((id != null) && id.equals(tag)) {
+                            found = true;
+                        }
+                        else {
+                            j++;
+                        }
+                    }
+                    if (!found) {
+                        toBeRemoved.add(i);
+                    }
+                }
+                for (Integer index: toBeRemoved) {
+                    tabs.removeTabAt(index);
                 }
             }
         }
