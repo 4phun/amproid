@@ -70,8 +70,6 @@ final class AmproidMediaPlayer extends MediaPlayer
     private VolumeShaper fadeInShaper  = null;
     private VolumeShaper fadeOutShaper = null;
 
-    private int noAutoStartMessageCounter = 0;
-
 
     private final Handler playerHandler = new Handler(Looper.getMainLooper())
     {
@@ -198,23 +196,12 @@ final class AmproidMediaPlayer extends MediaPlayer
         }
     };
 
-    private final Runnable noAutoStartMessageDisplay = new Runnable()
+    private final Runnable noAutoStartMessage = new Runnable()
     {
         @Override
         public void run()
         {
-            int delay = 500;
-            if (noAutoStartMessageCounter % 2 == 0) {
-                amproidService.fakeTrackMessage(R.string.press_play, track.getAlbum());
-            }
-            else {
-                amproidService.genuineTrackMessage(track);
-                delay = 1500;
-            }
-
-            noAutoStartMessageCounter++;
-
-            playerHandler.postDelayed(noAutoStartMessageDisplay, delay);
+            amproidService.fakeTrackMessage(R.string.press_play, track.getAlbum());
         }
     };
 
@@ -272,7 +259,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                 }
                 else {
                     amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, getCurrentPosition());
-                    playerHandler.post(noAutoStartMessageDisplay);
+                    playerHandler.postDelayed(noAutoStartMessage, 10000);
                 }
 
                 if (AmproidMediaPlayer.this.track.getPictureUrl() != null) {
@@ -426,7 +413,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                     .build());
         }
 
-        playerHandler.removeCallbacks(noAutoStartMessageDisplay);
+        playerHandler.removeCallbacks(noAutoStartMessage);
         amproidService.genuineTrackMessage(track);
 
         try {
@@ -471,6 +458,11 @@ final class AmproidMediaPlayer extends MediaPlayer
     @Override
     public void pause()
     {
+        if (track.isRadio()) {
+            stop();
+            return;
+        }
+
         amproidService.stateUpdate(PlaybackStateCompat.STATE_PAUSED, getCurrentPosition());
 
         try {
@@ -516,11 +508,13 @@ final class AmproidMediaPlayer extends MediaPlayer
     @Override
     public void release()
     {
-        playerHandler.removeCallbacks(noAutoStartMessageDisplay);
+        playerHandler.removeCallbacks(noAutoStartMessage);
 
-        positionTimer.cancel();
-        positionTimer.purge();
-        positionTimer = null;
+        if (positionTimer != null) {
+            positionTimer.cancel();
+            positionTimer.purge();
+            positionTimer = null;
+        }
 
         if (equalizer != null) {
             equalizer.release();
