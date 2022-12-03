@@ -187,7 +187,7 @@ public class AmproidService extends MediaBrowserServiceCompat
                     int duration = mediaPlayer.getDuration();
                     if (duration != mediaSessionUpdateDurationPositionIfPlayingLastDuration) {
                         mediaSessionUpdateDurationPositionIfPlayingLastDuration = duration;
-                        metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration());
+                        metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, Math.max(duration, 0));
                         mediaSession.setMetadata(metadataBuilder.build());
                     }
 
@@ -763,7 +763,7 @@ public class AmproidService extends MediaBrowserServiceCompat
     }
 
 
-    void asyncHousekeeping()
+    synchronized void asyncHousekeeping()
     {
         Vector<ThreadCancellable> toBeRemoved = new Vector<>();
 
@@ -1126,13 +1126,15 @@ public class AmproidService extends MediaBrowserServiceCompat
         catch (Exception ignored) {
         }
 
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
+        synchronized (this) {
+            if (mediaPlayer != null) {
+                mediaPlayer.stop();
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
 
-        mediaPlayer = new AmproidMediaPlayer(this, track, !pausedByUser);
+            mediaPlayer = new AmproidMediaPlayer(this, track, !pausedByUser);
+        }
     }
 
 
@@ -1487,6 +1489,14 @@ public class AmproidService extends MediaBrowserServiceCompat
                     GetTracksThread getTracks = new GetTracksThread(authToken, serverUrl, playMode, "", randomTags, randomCountdown, mainHandler);
                     startedThreads.add(getTracks);
                     getTracks.start();
+                }
+                else {
+                    try {
+                        if ((mediaPlayer != null) && mediaPlayer.getTrack().isRadio()) {
+                            onSkipToNext();
+                        }
+                    }
+                    catch (Exception ignored) {}
                 }
                 return;
             }

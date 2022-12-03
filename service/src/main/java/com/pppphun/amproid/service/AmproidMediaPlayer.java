@@ -56,6 +56,7 @@ final class AmproidMediaPlayer extends MediaPlayer
 
     private final AmproidService amproidService;
     private final Track          track;
+    private       boolean        preparing     = false;
     private       boolean        prepared      = false;
     private       boolean        erred         = false;
     private       int            errorResource = R.string.error_error;
@@ -245,14 +246,15 @@ final class AmproidMediaPlayer extends MediaPlayer
                     fadeOutShaper.apply(VolumeShaper.Operation.PLAY);
                 }
             }
-        }, 2500, 1000);
+        }, 2500, 500);
 
         setOnPreparedListener(new OnPreparedListener()
         {
             @Override
             public void onPrepared(MediaPlayer mp)
             {
-                prepared = true;
+                preparing = false;
+                prepared  = true;
 
                 if (autoStart) {
                     start();
@@ -376,14 +378,24 @@ final class AmproidMediaPlayer extends MediaPlayer
     @Override
     public void prepareAsync()
     {
+        if (preparing) {
+            return;
+        }
+        preparing = true;
+
         amproidService.stateUpdate(PlaybackStateCompat.STATE_BUFFERING, 0);
 
         try {
+            if (track.isRadio()) {
+                reset();
+                setDataSource(amproidService, Uri.parse(track.getUrl().toString()));
+            }
             super.prepareAsync();
         }
         catch (Exception e) {
             amproidService.fakeTrackMessage(amproidService.getString(R.string.error_prepare_error), (e.getMessage() == null) || e.getMessage().isEmpty() ? e.getClass().toString() : e.getMessage());
 
+            preparing     = false;
             erred         = true;
             errorResource = R.string.error_prepare_error;
         }
@@ -394,6 +406,7 @@ final class AmproidMediaPlayer extends MediaPlayer
     public void start()
     {
         if (!prepared) {
+            prepareAsync();
             return;
         }
 
@@ -404,6 +417,7 @@ final class AmproidMediaPlayer extends MediaPlayer
         amproidService.genuineTrackMessage(track);
         amproidService.savePlayMode();
 
+        boolean doFade = false;
         if (fadeIn == FADE_DO) {
             fadeIn       = FADE_DONE;
             fadeInShaper = createVolumeShaper(new VolumeShaper.Configuration.Builder()
@@ -411,6 +425,7 @@ final class AmproidMediaPlayer extends MediaPlayer
                     .setCurve(new float[]{0.0f, 1.0f}, new float[]{0.0f, 1.0f})
                     .setInterpolatorType(VolumeShaper.Configuration.INTERPOLATOR_TYPE_LINEAR)
                     .build());
+            doFade = true;
         }
 
         playerHandler.removeCallbacks(noAutoStartMessage);
@@ -418,7 +433,7 @@ final class AmproidMediaPlayer extends MediaPlayer
 
         try {
             super.start();
-            if (fadeInShaper != null) {
+            if (doFade) {
                 fadeInShaper.apply(VolumeShaper.Operation.PLAY);
             }
         }

@@ -184,6 +184,10 @@ public class Track
 
     public boolean isDoFade()
     {
+        if (isRadio()) {
+            return true;
+        }
+
         boolean doFade = false;
         for (String tag : tags) {
             if (getFadeTags().contains(tag)) {
