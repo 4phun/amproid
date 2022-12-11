@@ -26,6 +26,7 @@ import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ARTIST;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
+import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_CACHE;
 
 import android.content.Context;
 import android.net.Uri;
@@ -54,8 +55,8 @@ public class RecommendationsCache
 {
     private final Context context = Amproid.getAppContext();
 
-    private final String  authToken;
-    private final String  url;
+    private       String authToken;
+    private final String url;
     private final Handler amproidServiceHandler;
 
     private Vector<HashMap<String, String>> artists   = new Vector<>();
@@ -101,7 +102,7 @@ public class RecommendationsCache
                         String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
                         if (!errorMessage.isEmpty()) {
                             if (amproidServiceHandler != null) {
-                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage, NEW_TOKEN_REASON_CACHE);
                             }
                             return;
                         }
@@ -143,6 +144,12 @@ public class RecommendationsCache
         this.amproidServiceHandler = amproidServiceHandler;
 
         downloadRecommendations();
+    }
+
+
+    public void setAuthToken(String authToken)
+    {
+        this.authToken = authToken;
     }
 
 

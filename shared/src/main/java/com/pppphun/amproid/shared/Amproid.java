@@ -48,9 +48,12 @@ import java.util.Vector;
 
 public class Amproid extends Application
 {
-    public static final int     NETWORK_CONNECT_TIMEOUT = 25000;
-    public static final int     NETWORK_READ_TIMEOUT    = 90000;
-    private static      Context appContext              = null;
+    public static final int NETWORK_CONNECT_TIMEOUT = 25000;
+    public static final int NETWORK_READ_TIMEOUT    = 90000;
+    public static final int NEW_TOKEN_REASON_NONE   = 0;
+    public static final int NEW_TOKEN_REASON_CACHE  = 1;
+
+    private static Context appContext = null;
 
 
     public enum ScreenSizeDimension
@@ -268,6 +271,16 @@ public class Amproid extends Application
     {
         Bundle arguments = new Bundle();
         arguments.putString(appContext.getString(R.string.msg_error_message), errorMessage);
+
+        sendMessage(handler, actionStringResource, asyncFinishedTypeResource, arguments);
+    }
+
+
+    public static void sendMessage(Handler handler, int actionStringResource, int asyncFinishedTypeResource, String errorMessage, int newTokenReason)
+    {
+        Bundle arguments = new Bundle();
+        arguments.putString(appContext.getString(R.string.msg_error_message), errorMessage);
+        arguments.putInt(appContext.getString(R.string.msg_new_token_reason), newTokenReason);
 
         sendMessage(handler, actionStringResource, asyncFinishedTypeResource, arguments);
     }

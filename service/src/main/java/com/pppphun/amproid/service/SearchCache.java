@@ -28,6 +28,7 @@ import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_RADIO;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_SONG;
+import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_CACHE;
 
 import android.content.Context;
 import android.net.Uri;
@@ -54,8 +55,8 @@ public class SearchCache
 {
     private final Context context = Amproid.getAppContext();
 
-    private final String  authToken;
-    private final String  url;
+    private       String authToken;
+    private final String url;
     private final Handler amproidServiceHandler;
 
     private HashMap<Integer, Vector<HashMap<String, String>>> searchResults = new HashMap<>();
@@ -98,7 +99,7 @@ public class SearchCache
                         String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
                         if (!errorMessage.isEmpty()) {
                             if (amproidServiceHandler != null) {
-                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage, NEW_TOKEN_REASON_CACHE);
                             }
                             return;
                         }
@@ -132,6 +133,12 @@ public class SearchCache
         if (autoPopulate) {
             doSearch(null);
         }
+    }
+
+
+    public void setAuthToken(String authToken)
+    {
+        this.authToken = authToken;
     }
 
 

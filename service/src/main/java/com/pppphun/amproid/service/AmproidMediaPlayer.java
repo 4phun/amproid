@@ -58,6 +58,7 @@ final class AmproidMediaPlayer extends MediaPlayer
     private final Track          track;
     private       boolean        preparing     = false;
     private       boolean        prepared      = false;
+    private       boolean        prepareCancel = false;
     private       boolean        erred         = false;
     private       int            errorResource = R.string.error_error;
 
@@ -256,6 +257,11 @@ final class AmproidMediaPlayer extends MediaPlayer
                 preparing = false;
                 prepared  = true;
 
+                if (prepareCancel) {
+                    stop();
+                    return;
+                }
+
                 if (autoStart) {
                     start();
                 }
@@ -360,6 +366,7 @@ final class AmproidMediaPlayer extends MediaPlayer
             setDataSource(amproidService, Uri.parse(track.getUrl().toString()));
         }
         catch (Exception e) {
+            amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
             amproidService.fakeTrackMessage(R.string.error_set_data_source_error, e.getMessage());
 
             erred         = true;
@@ -381,7 +388,8 @@ final class AmproidMediaPlayer extends MediaPlayer
         if (preparing) {
             return;
         }
-        preparing = true;
+        preparing     = true;
+        prepareCancel = false;
 
         amproidService.stateUpdate(PlaybackStateCompat.STATE_BUFFERING, 0);
 
@@ -393,9 +401,11 @@ final class AmproidMediaPlayer extends MediaPlayer
             super.prepareAsync();
         }
         catch (Exception e) {
+            amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
             amproidService.fakeTrackMessage(amproidService.getString(R.string.error_prepare_error), (e.getMessage() == null) || e.getMessage().isEmpty() ? e.getClass().toString() : e.getMessage());
 
             preparing     = false;
+            prepareCancel = true;
             erred         = true;
             errorResource = R.string.error_prepare_error;
         }
@@ -433,17 +443,22 @@ final class AmproidMediaPlayer extends MediaPlayer
 
         try {
             super.start();
-            if (doFade) {
-                fadeInShaper.apply(VolumeShaper.Operation.PLAY);
-            }
         }
         catch (Exception e) {
+            amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
             amproidService.fakeTrackMessage(R.string.error_play_error, (e.getMessage() == null) || e.getMessage().isEmpty() ? e.getClass().toString() : e.getMessage());
 
             erred         = true;
             errorResource = R.string.error_play_error;
 
             return;
+        }
+        if (doFade) {
+            try {
+                fadeInShaper.apply(VolumeShaper.Operation.PLAY);
+            }
+            catch (Exception ignored) {
+            }
         }
 
         playerHandler.post(effectCreate);
@@ -456,7 +471,8 @@ final class AmproidMediaPlayer extends MediaPlayer
     {
         amproidService.stateUpdate(PlaybackStateCompat.STATE_STOPPED, 0);
 
-        prepared = false;
+        prepared      = false;
+        prepareCancel = true;
 
         try {
             super.stop();

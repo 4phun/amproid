@@ -28,6 +28,9 @@ import static android.accounts.AccountManager.KEY_AUTHTOKEN;
 import static android.accounts.AccountManager.KEY_ERROR_CODE;
 import static android.accounts.AccountManager.KEY_ERROR_MESSAGE;
 
+import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_CACHE;
+import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_NONE;
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
@@ -131,6 +134,8 @@ public class AmproidService extends MediaBrowserServiceCompat
     private int     authAttempts    = 0;
     private Account selectedAccount = null;
     private String  authToken       = null;
+
+    private int newTokenReason = NEW_TOKEN_REASON_NONE;
 
     private       int           playMode         = PLAY_MODE_UNKNOWN;
     private       String        playlistId       = null;
@@ -882,16 +887,39 @@ public class AmproidService extends MediaBrowserServiceCompat
         if (playlistsCache == null) {
             playlistsCache = new PlaylistsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
         }
+        else {
+            playlistsCache.setAuthToken(authToken);
+            if (newTokenReason == NEW_TOKEN_REASON_CACHE) {
+                playlistsCache.refreshPlaylists();
+            }
+        }
         if (recommendationsCache == null) {
             recommendationsCache = new RecommendationsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
         }
+        else {
+            recommendationsCache.setAuthToken(authToken);
+            if (newTokenReason == NEW_TOKEN_REASON_CACHE) {
+                recommendationsCache.refreshRecommendations();
+            }
+        }
         if (searchCache == null) {
             searchCache = new SearchCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler, (searchParameters == null));
+        }
+        else {
+            searchCache.setAuthToken(authToken);
+            if (newTokenReason == NEW_TOKEN_REASON_CACHE) {
+                searchCache.refreshSearch(null);
+            }
         }
 
         if (searchParameters != null) {
             // continued from onStartCommand or onPlayFromSearch (wasn't logged in)
             mediaSessionCallback.onPlayFromSearch(Amproid.bundleGetString(searchParameters, "query"), searchParameters);
+            return;
+        }
+
+        if (newTokenReason != NEW_TOKEN_REASON_NONE) {
+            newTokenReason = NEW_TOKEN_REASON_NONE;
             return;
         }
 
@@ -1195,6 +1223,10 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         String errorMessage = arguments.getString(getString(R.string.msg_error_message), "");
         if (errorMessage.compareTo("Session Expired") == 0) {
+            int newTokenReason = arguments.getInt(getString(R.string.msg_new_token_reason), NEW_TOKEN_REASON_NONE);
+            if (newTokenReason != NEW_TOKEN_REASON_NONE) {
+                this.newTokenReason = newTokenReason;
+            }
             getNewAuthToken(errorMessage);
             return;
         }

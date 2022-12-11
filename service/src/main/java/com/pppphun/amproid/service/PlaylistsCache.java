@@ -23,6 +23,7 @@ package com.pppphun.amproid.service;
 
 
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
+import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_CACHE;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -50,8 +51,8 @@ public class PlaylistsCache
 {
     private final Context context = Amproid.getAppContext();
 
-    private final String  authToken;
-    private final String  url;
+    private       String authToken;
+    private final String url;
     private final Handler amproidServiceHandler;
 
     private Vector<HashMap<String, String>> playlists = new Vector<>();
@@ -94,7 +95,7 @@ public class PlaylistsCache
                         String errorMessage = arguments.getString(Amproid.getAppContext().getString(R.string.msg_error_message), "");
                         if (!errorMessage.isEmpty()) {
                             if (amproidServiceHandler != null) {
-                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage);
+                                Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.recommendations_now_valid, errorMessage, NEW_TOKEN_REASON_CACHE);
                             }
                             return;
                         }
@@ -149,6 +150,12 @@ public class PlaylistsCache
         if (!isValid()) {
             downloadPlaylists();
         }
+    }
+
+
+    public void setAuthToken(String authToken)
+    {
+        this.authToken = authToken;
     }
 
 

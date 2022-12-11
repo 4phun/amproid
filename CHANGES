@@ -1,3 +1,8 @@
+2.1.2 - 2022-12-11
+    Better handling of session expired while refreshing cached lists
+    Minor UI improvements
+    Bugfixes
+
 2.1.1 - 2022-12-03
     Radio Stations fade in
     Bugfixes
