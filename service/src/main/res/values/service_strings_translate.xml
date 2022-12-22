@@ -53,9 +53,10 @@
     <string name="playlist_cache_refreshed">Playlist cache refreshed</string>
     <string name="subtitle_artist">artist</string>
     <string name="subtitle_album">album</string>
+    <string name="subtitle_genre">genre</string>
     <string name="subtitle_song">song</string>
     <string name="subtitle_playlist">playlist</string>
-    <string name="subtitle_genre">genre</string>
+    <string name="subtitle_radio">Radio Station</string>
 
     <!-- error messages -->
     <string name="error_defective_albums">%d album(s) had invalid data</string>

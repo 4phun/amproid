@@ -217,7 +217,14 @@ public class AmproidService extends MediaBrowserServiceCompat
                 mainHandler.postAtTime(sleepTimer, SystemClock.uptimeMillis() + 1000);
                 return;
             }
-            mediaSessionCallback.onStop();
+
+            sleepSecs = -99;
+            if (mediaPlayer != null) {
+                mediaSessionCallback.onPause();
+            }
+            else {
+                mediaSessionCallback.onStop();
+            }
         }
     };
 
@@ -394,7 +401,13 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         notificationBuilder.setChannelId(NOTIFICATION_CHANNEL_ID);
 
-        startForeground(NOTIFICATION_ID, notificationBuilder.build());
+        try {
+            startForeground(NOTIFICATION_ID, notificationBuilder.build());
+        }
+        catch (Exception e) {
+            stopSelf();
+            return;
+        }
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.eq_preferences), Context.MODE_PRIVATE);
         String equalizerSettingsPlainString = preferences.getString(getString(R.string.eq_settings_preference), null);
@@ -590,9 +603,20 @@ public class AmproidService extends MediaBrowserServiceCompat
         if ((intent != null) && (intent.getAction() != null) && (intent.getExtras() != null) && (intent.getAction().equals("android.media.action.MEDIA_PLAY_FROM_SEARCH"))) {
             searchParameters = intent.getExtras();
 
+            String query = Amproid.bundleGetString(searchParameters, "query");
+            if (!query.isEmpty()) {
+                Vector<String> recentSearches = Amproid.loadRecentSearches();
+                recentSearches.remove(query);
+                while (recentSearches.size() > 99) {
+                    recentSearches.remove(0);
+                }
+                recentSearches.add(query);
+                Amproid.saveRecentSearches(recentSearches);
+            }
+
             // check if app not just started (already playing), otherwise onPlayFromSearch will be called after login to Ampache server
             if (playMode != PLAY_MODE_UNKNOWN) {
-                mediaSessionCallback.onPlayFromSearch(Amproid.bundleGetString(intent.getExtras(), "query"), intent.getExtras());
+                mediaSessionCallback.onPlayFromSearch(query, searchParameters);
             }
         }
 
@@ -907,7 +931,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         }
         else {
             searchCache.setAuthToken(authToken);
-            if (newTokenReason == NEW_TOKEN_REASON_CACHE) {
+            if ((newTokenReason == NEW_TOKEN_REASON_CACHE) && (searchParameters == null)) {
                 searchCache.refreshSearch(null);
             }
         }
@@ -1265,9 +1289,10 @@ public class AmproidService extends MediaBrowserServiceCompat
                 }
 
                 if (searchParameters != null) {
-                    String query = searchParameters.get("query").toString();
+                    String query = Amproid.bundleGetString(searchParameters, "query");
                     searchParameters = null;
 
+                    // start playing best match if search from assistant
                     if (searchCache != null) {
                         Vector<HashMap<String, String>> searchResults = searchCache.getSearchResults(true);
                         if (searchResults.size() < 1) {

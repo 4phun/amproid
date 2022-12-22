@@ -349,7 +349,6 @@ public class GetRecommendationsThread extends ThreadCancellable
         while (genres.size() > MAX_PER_TYPE) {
             genres.remove(randomizer.nextInt(genres.size()));
         }
-
         if (isCancelled()) {
             return;
         }
@@ -360,6 +359,15 @@ public class GetRecommendationsThread extends ThreadCancellable
         arguments.putSerializable("albums", albums);
         arguments.putSerializable("playlists", playlists);
         arguments.putSerializable("genres", genres);
+
+        Vector<HashMap<String, String>> radios = ampacheAPICaller.getLiveStreams(authToken);
+        if (radios.size() > 0) {
+            arguments.putSerializable("radio", radios.get(randomizer.nextInt(radios.size())));
+        }
+        if (isCancelled()) {
+            return;
+        }
+
         Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_recommendations, arguments);
     }
 }

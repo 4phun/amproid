@@ -26,6 +26,7 @@ import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_ARTIST;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_GENRE;
 import static com.pppphun.amproid.service.AmproidService.PREFIX_PLAYLIST;
+import static com.pppphun.amproid.service.AmproidService.PREFIX_RADIO;
 import static com.pppphun.amproid.shared.Amproid.NEW_TOKEN_REASON_CACHE;
 
 import android.content.Context;
@@ -63,6 +64,7 @@ public class RecommendationsCache
     private Vector<HashMap<String, String>> albums    = new Vector<>();
     private Vector<HashMap<String, String>> playlists = new Vector<>();
     private Vector<String>                  genres    = new Vector<>();
+    private Vector<HashMap<String, String>> radios    = new Vector<>();
 
     private boolean valid        = false;
     private boolean sendValidMsg = false;
@@ -115,6 +117,8 @@ public class RecommendationsCache
                         Vector<HashMap<String, String>> playlists = (Vector<HashMap<String, String>>) arguments.getSerializable("playlists");
                         @SuppressWarnings("unchecked")
                         Vector<String> genres = (Vector<String>) arguments.getSerializable("genres");
+                        @SuppressWarnings("unchecked")
+                        HashMap<String, String> radio = (HashMap<String, String>)arguments.getSerializable("radio");
 
                         if ((artists != null) && (albums != null) && (playlists != null) && (genres != null)) {
                             synchronized (this) {
@@ -122,7 +126,13 @@ public class RecommendationsCache
                                 RecommendationsCache.this.albums    = albums;
                                 RecommendationsCache.this.playlists = playlists;
                                 RecommendationsCache.this.genres    = genres;
-                                valid                               = true;
+
+                                RecommendationsCache.this.radios.clear();
+                                if (radio != null) {
+                                    RecommendationsCache.this.radios.add(radio);
+                                }
+
+                                valid = true;
                             }
                             sendResultToSend();
                             if ((amproidServiceHandler != null) && sendValidMsg) {
@@ -217,10 +227,12 @@ public class RecommendationsCache
         Vector<HashMap<String, String>> artists;
         Vector<HashMap<String, String>> albums;
         Vector<HashMap<String, String>> playlists;
+        Vector<HashMap<String, String>> radios;
         synchronized (this) {
             artists   = Amproid.deepCopyItems(this.artists);
             albums    = Amproid.deepCopyItems(this.albums);
             playlists = Amproid.deepCopyItems(this.playlists);
+            radios    = Amproid.deepCopyItems(this.radios);
         }
 
         ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
@@ -288,6 +300,21 @@ public class RecommendationsCache
             catch (Exception ignored) {
                 // in case UTF-8 is not supported, pretty much never happens with min SDK version being what it is
             }
+        }
+        for (HashMap<String, String> radio : radios) {
+            if (!radio.containsKey("id") || !radio.containsKey("name")) {
+                continue;
+            }
+            results.add(
+                    new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(PREFIX_RADIO + radio.get("id"))
+                                    .setTitle(radio.get("name"))
+                                    .setSubtitle(Amproid.getAppContext().getString(R.string.subtitle_radio))
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    )
+            );
         }
 
         results.sort(new Comparator<MediaBrowserCompat.MediaItem>()

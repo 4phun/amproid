@@ -1,3 +1,9 @@
+2.1.3 - 2022-12-22
+    Added one random radio station into "For You"
+    Better search results when cold started from assistant
+    Sleep timer to pause instead of stop
+    Bugfixes specific to Android 12 & up
+
 2.1.2 - 2022-12-11
     Better handling of session expired while refreshing cached lists
     Minor UI improvements
