@@ -66,6 +66,8 @@
 
     <string name="hide_dot_playlists">Hide playlists whose name starts with a dot</string>
     <string name="show_radios">Show Radio Stations</string>
+    <string name="show_shuffle">Show shuffle source in title</string>
+    <string name="recent_pool">\"New\" pool size</string>
 
     <string name="tracks">Tracks</string>
 

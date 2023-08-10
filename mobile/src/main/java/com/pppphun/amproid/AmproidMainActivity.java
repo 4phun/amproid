@@ -40,7 +40,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.icu.text.SimpleDateFormat;
 import android.media.audiofx.Equalizer;
@@ -343,21 +342,21 @@ public class AmproidMainActivity extends AppCompatActivity
         final CheckBox showRadios = view.findViewById(R.id.show_radios);
         showRadios.setChecked(preferences.getBoolean(getString(R.string.show_radios_preference), true));
 
-        final TypedArray recommendationsModes = getResources().obtainTypedArray(R.array.recommendations_modes);
-        String           forYouModeSetting    = preferences.getString(getString(R.string.recommendations_mode_preference), recommendationsModes.getString(0));
+        final CheckBox showShuffleInTitle = view.findViewById(R.id.show_shuffle_in_title);
+        showShuffleInTitle.setChecked(preferences.getBoolean(getString(R.string.show_shuffle_in_title_preference), Amproid.DEFAULT_SHOW_SHUFFLE_IN_TITLE));
 
-        int forYouIndex = 0;
-        for (int i = 0; i < recommendationsModes.length(); i++) {
-            if (forYouModeSetting.compareTo(recommendationsModes.getString(i)) == 0) {
-                forYouIndex = i;
-                break;
-            }
+        final TextView sleepTimeLabel = view.findViewById(R.id.sleep_time_label);
+        sleepTimeLabel.setTextColor(showRadios.getCurrentTextColor());
+
+        final SeekBar recentCount     = view.findViewById(R.id.recent_count);
+        int           recentSongCount = preferences.getInt(getString(R.string.random_count_preference), Amproid.DEFAULT_RECENT_SONG_COUNT);
+        if (recentSongCount > recentCount.getMax()) {
+            recentSongCount = recentCount.getMax();
         }
-
-        recommendationsModes.recycle();
-
-        final Spinner forYouMode = view.findViewById(R.id.recommendations_mode);
-        forYouMode.setSelection(forYouIndex);
+        else if (recentSongCount < recentCount.getMin()) {
+            recentSongCount = recentCount.getMin();
+        }
+        recentCount.setProgress(recentSongCount);
 
         builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener()
         {
@@ -368,7 +367,8 @@ public class AmproidMainActivity extends AppCompatActivity
                 SharedPreferences.Editor preferencesEditor = preferences.edit();
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
                 preferencesEditor.putBoolean(getString(R.string.show_radios_preference), showRadios.isChecked());
-                preferencesEditor.putString(getString(R.string.recommendations_mode_preference), forYouMode.getSelectedItem().toString());
+                preferencesEditor.putBoolean(getString(R.string.show_shuffle_in_title_preference), showShuffleInTitle.isChecked());
+                preferencesEditor.putInt(getString(R.string.random_count_preference), recentCount.getProgress());
                 preferencesEditor.commit();
 
                 ProgressBar loading = AmproidMainActivity.this.findViewById(R.id.loading);

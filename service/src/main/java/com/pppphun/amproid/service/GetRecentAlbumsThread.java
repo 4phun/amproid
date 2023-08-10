@@ -22,25 +22,17 @@
 package com.pppphun.amproid.service;
 
 
-import static com.pppphun.amproid.service.AmproidService.PREFIX_ALBUM;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_NONE;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_UNKNOWN;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaDescriptionCompat;
-
-import androidx.media.MediaBrowserServiceCompat;
 
 import com.pppphun.amproid.shared.Amproid;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Vector;
 
 
@@ -49,16 +41,14 @@ public class GetRecentAlbumsThread extends ThreadCancellable
     private final String authToken;
     private final String url;
 
-    private final Handler                                                              amproidServiceHandler;
-    private final MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend;
+    private final Handler resultsHandler;
 
 
-    GetRecentAlbumsThread(String authToken, String url, Handler amproidServiceHandler, MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>> resultToSend)
+    GetRecentAlbumsThread(String authToken, String url, Handler resultsHandler )
     {
-        this.authToken             = authToken;
-        this.url                   = url;
-        this.amproidServiceHandler = amproidServiceHandler;
-        this.resultToSend          = resultToSend;
+        this.authToken      = authToken;
+        this.url            = url;
+        this.resultsHandler = resultsHandler;
     }
 
 
@@ -66,11 +56,11 @@ public class GetRecentAlbumsThread extends ThreadCancellable
     public void run()
     {
         if ((authToken == null) || authToken.isEmpty()) {
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, R.string.error_blank_token);
+            Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, R.string.error_blank_token);
             return;
         }
         if ((url == null) || url.isEmpty()) {
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, R.string.error_invalid_server_url);
+            Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, R.string.error_invalid_server_url);
             return;
         }
 
@@ -79,7 +69,7 @@ public class GetRecentAlbumsThread extends ThreadCancellable
         while (!isCancelled() && ((connectionStatus == CONNECTION_UNKNOWN) || (connectionStatus == CONNECTION_NONE))) {
             Bundle arguments = new Bundle();
             arguments.putLong("elapsedMS", System.currentTimeMillis() - checkStart);
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_async_no_network, arguments);
+            Amproid.sendMessage(resultsHandler, R.string.msg_async_no_network, arguments);
 
             SystemClock.sleep(1000);
 
@@ -88,16 +78,16 @@ public class GetRecentAlbumsThread extends ThreadCancellable
 
         AmpacheAPICaller ampacheAPICaller = new AmpacheAPICaller(url);
         if (!ampacheAPICaller.getErrorMessage().isEmpty()) {
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, ampacheAPICaller.getErrorMessage());
+            Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, ampacheAPICaller.getErrorMessage());
             return;
         }
 
-        Vector<HashMap<String, String>> recentAlbums = ampacheAPICaller.getRecentAlbums(authToken);
+        Vector<HashMap<String, String>> recentAlbums = ampacheAPICaller.getRecentAlbums(authToken, Amproid.getRecentSongCount());
         if (isCancelled()) {
             return;
         }
         if (!ampacheAPICaller.getErrorMessage().isEmpty()) {
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, ampacheAPICaller.getErrorMessage());
+            Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_tracks, ampacheAPICaller.getErrorMessage());
             return;
         }
 
@@ -124,59 +114,8 @@ public class GetRecentAlbumsThread extends ThreadCancellable
             return;
         }
 
-        if (resultToSend != null) {
-            ArrayList<MediaBrowserCompat.MediaItem> results = new ArrayList<>();
-
-            for (HashMap<String, String> recentAlbum : recentAlbums) {
-                if (!recentAlbum.containsKey("id") || !recentAlbum.containsKey("name")) {
-                    continue;
-                }
-
-                MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
-                        .setMediaId(PREFIX_ALBUM + recentAlbum.get("id"))
-                        .setTitle(recentAlbum.get("name"));
-
-                String art = recentAlbum.get("art");
-                if ((art != null) && !art.isEmpty()) {
-                    builder.setIconUri(Uri.parse(art));
-                }
-
-                results.add(new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
-            }
-
-            results.add(0,
-                    new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(Amproid.getAppContext().getString(R.string.item_random_recent_id))
-                                    .setTitle(Amproid.getAppContext().getString(R.string.item_random_recent_desc))
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    )
-            );
-
-            resultToSend.sendResult(results);
-        }
-
-        int totalSongCount = 0;
-        for (HashMap<String, String> recentAlbum : recentAlbums) {
-            if (!recentAlbum.containsKey("songcount")) {
-                continue;
-            }
-
-            int songCount = 0;
-            try {
-                songCount = Integer.parseInt(recentAlbum.get("songcount"));
-            }
-            catch (Exception ignored) {
-            }
-
-            totalSongCount += songCount;
-        }
-
-        if (totalSongCount > 0) {
-            Bundle arguments = new Bundle();
-            arguments.putSerializable("recentSongCount", totalSongCount);
-            Amproid.sendMessage(amproidServiceHandler, R.string.msg_action_async_finished, R.integer.async_get_recent_albums, arguments);
-        }
+        Bundle arguments = new Bundle();
+        arguments.putSerializable("recentAlbums", recentAlbums);
+        Amproid.sendMessage(resultsHandler, R.string.msg_action_async_finished, R.integer.async_get_recent_albums, arguments);
     }
 }

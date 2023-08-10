@@ -48,24 +48,24 @@ import java.util.Vector;
 
 public class Amproid extends Application
 {
-    public static final int NETWORK_CONNECT_TIMEOUT = 25000;
-    public static final int NETWORK_READ_TIMEOUT    = 90000;
-    public static final int NEW_TOKEN_REASON_NONE   = 0;
-    public static final int NEW_TOKEN_REASON_CACHE  = 1;
-
-    private static Context appContext = null;
-
+    public static final int     NETWORK_CONNECT_TIMEOUT       = 25000;
+    public static final int     NETWORK_READ_TIMEOUT          = 90000;
+    public static final int     NEW_TOKEN_REASON_NONE         = 0;
+    public static final int     NEW_TOKEN_REASON_CACHE        = 1;
+    public static final int     DEFAULT_RECENT_SONG_COUNT     = 150;
+    public static final boolean DEFAULT_SHOW_SHUFFLE_IN_TITLE = false;
 
     public enum ScreenSizeDimension
     {
         SCREEN_SIZE_WIDTH, SCREEN_SIZE_HEIGHT
     }
 
-
     public enum ConnectionStatus
     {
         CONNECTION_UNKNOWN, CONNECTION_NONE, CONNECTION_EXIST
     }
+
+    private static Context appContext = null;
 
 
     @NotNull
@@ -153,6 +153,13 @@ public class Amproid extends Application
         }
 
         return returnValue;
+    }
+
+
+    public static int getRecentSongCount()
+    {
+        SharedPreferences preferences = Amproid.getAppContext().getSharedPreferences(Amproid.getAppContext().getString(R.string.options_preferences), Context.MODE_PRIVATE);
+        return preferences.getInt(Amproid.getAppContext().getString(R.string.random_count_preference), DEFAULT_RECENT_SONG_COUNT);
     }
 
 

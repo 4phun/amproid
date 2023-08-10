@@ -1,3 +1,9 @@
+2.1.4 - 2023-08-10
+    Removed "For you mode" option
+    New option "New" shuffle pool size
+    Shuffle now includes recently added like it does favorites
+    Show shuffle source in title, if enabled in new option
+
 2.1.3 - 2022-12-22
     Added one random radio station into "For You"
     Better search results when cold started from assistant

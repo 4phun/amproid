@@ -38,7 +38,6 @@
     <string name="item_random_desc">Shuffle everything</string>
     <string name="item_random_recent_desc">Shuffle new</string>
     <string name="item_recommendations_desc">For You</string>
-    <string name="item_recommendations_mode_desc">\"For You\" Mode</string>
     <string name="item_search_results_desc">Search Results</string>
     <string name="item_playlists_desc">Playlists</string>
     <string name="item_radios_desc">Radio Stations</string>

@@ -321,7 +321,7 @@ public class AmpacheAPICaller
     }
 
 
-    public Vector<HashMap<String, String>> getRecentAlbums(String token)
+    public Vector<HashMap<String, String>> getRecentAlbums(String token, int recentSongCount)
     {
         if (baseUrl == null) {
             setErrorMessage(com.pppphun.amproid.shared.R.string.error_invalid_server_url);
@@ -334,12 +334,48 @@ public class AmpacheAPICaller
 
         errorMessage = "";
 
+        int albumCount = 15;
+        if (recentSongCount > 0) {
+            QueryStringBuilder tempQueryString = new QueryStringBuilder();
+            tempQueryString.addNameValue("action", "advanced_search");
+            tempQueryString.addNameValue("auth", token);
+            tempQueryString.addNameValue("type", "song");
+            tempQueryString.addNameValue("rule_1", "recent_added");
+            tempQueryString.addNameValue("rule_1_operator", "0");
+            tempQueryString.addNameValue("rule_1_input", String.valueOf(recentSongCount));
+
+            Vector<String> tempTagsNeeded = new Vector<>();
+            tempTagsNeeded.add("album");
+
+            URL tempUrl;
+            try {
+                tempUrl = new URL(baseUrl.toString() + API_PATH + "?" + tempQueryString.getQueryString());
+            }
+            catch (Exception e) {
+                errorMessage = e.getMessage();
+                return new Vector<>();
+            }
+
+            Vector<HashMap<String, String>> temp = blockingTransactionMulti(tempUrl, "song", tempTagsNeeded);
+
+            HashMap<String, Integer> uniqAlbums = new HashMap<>();
+            for (HashMap<String, String> result : temp) {
+                String albumId = result.get("album_id");
+                if ((albumId != null) && !albumId.isEmpty()) {
+                    uniqAlbums.put(albumId, 1);
+                }
+            }
+            if (uniqAlbums.keySet().size() > 0) {
+                albumCount = uniqAlbums.keySet().size();
+            }
+        }
+
         QueryStringBuilder queryString = new QueryStringBuilder();
         queryString.addNameValue("action", "stats");
         queryString.addNameValue("auth", token);
         queryString.addNameValue("type", "album");
         queryString.addNameValue("filter", "newest");
-        queryString.addNameValue("limit", "15");
+        queryString.addNameValue("limit", String.valueOf(albumCount));
 
         URL callUrl;
         try {
@@ -353,7 +389,6 @@ public class AmpacheAPICaller
         Vector<String> tagsNeeded = new Vector<>();
         tagsNeeded.add("name");
         tagsNeeded.add("art");
-        tagsNeeded.add("songcount");
 
         return blockingTransactionMulti(callUrl, "album", tagsNeeded);
     }

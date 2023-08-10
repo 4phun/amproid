@@ -23,6 +23,8 @@
 package com.pppphun.amproid.service;
 
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 
 import com.pppphun.amproid.shared.Amproid;
@@ -34,29 +36,39 @@ import java.util.Vector;
 
 public class Track
 {
-    private String  id;
-    private String  albumId;
-    private String  artistId;
-    private URL     url;
-    private URL     pictureUrl;
-    private String  title;
-    private String  album;
-    private String  artist;
-    private boolean radio;
+    public enum ShuffleSource
+    {
+        SHUFFLE_SOURCE_NONE,
+        SHUFFLE_SOURCE_SHUFFLE,
+        SHUFFLE_SOURCE_FAVORIE,
+        SHUFFLE_SOURCE_RECENTLY_ADDED
+    }
+
+    private String        id;
+    private String        albumId;
+    private String        artistId;
+    private URL           url;
+    private URL           pictureUrl;
+    private String        title;
+    private String        album;
+    private String        artist;
+    private boolean       radio;
+    private ShuffleSource shuffleSource;
 
     private final Vector<String> tags;
 
 
     public Track()
     {
-        id         = "";
-        url        = null;
-        pictureUrl = null;
-        title      = "Unknown";
-        album      = "Unknown";
-        artist     = "Unknown";
-        radio      = false;
-        tags       = new Vector<>();
+        id            = "";
+        url           = null;
+        pictureUrl    = null;
+        title         = "Unknown";
+        album         = "Unknown";
+        artist        = "Unknown";
+        radio         = false;
+        tags          = new Vector<>();
+        shuffleSource = ShuffleSource.SHUFFLE_SOURCE_NONE;
     }
 
 
@@ -160,6 +172,21 @@ public class Track
 
     public String getTitle()
     {
+        String title = this.title;
+
+        SharedPreferences preferences = Amproid.getAppContext().getSharedPreferences(Amproid.getAppContext().getString(R.string.options_preferences), Context.MODE_PRIVATE);
+        if (preferences.getBoolean(Amproid.getAppContext().getString(R.string.show_shuffle_in_title_preference), Amproid.DEFAULT_SHOW_SHUFFLE_IN_TITLE)) {
+            if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_FAVORIE) {
+                title = "\uD83D\uDC9F " +title;
+            }
+            else if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_RECENTLY_ADDED) {
+                title = "\uD83C\uDD95 " + title;
+            }
+            else if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_SHUFFLE) {
+                title = "\uD83D\uDD00 " + title;
+            }
+        }
+
         return title;
     }
 
@@ -217,6 +244,12 @@ public class Track
     }
 
 
+    public void setShuffleSource(ShuffleSource shuffleSource)
+    {
+        this.shuffleSource = shuffleSource;
+    }
+
+
     private Vector<String> getFadeTags()
     {
         TypedArray fadeTags = Amproid.getAppContext().getResources().obtainTypedArray(R.array.fade_tags);
@@ -229,5 +262,4 @@ public class Track
         fadeTags.recycle();
         return returnValue;
     }
-
 }

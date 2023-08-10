@@ -51,6 +51,18 @@
         android:singleLine="false"
         android:text="@string/show_radios" />
 
+    <CheckBox
+        android:id="@+id/show_shuffle_in_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/distance_between"
+        android:layout_marginEnd="@dimen/distance_from_edge"
+        android:ellipsize="middle"
+        android:maxLines="3"
+        android:singleLine="false"
+        android:text="@string/show_shuffle" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -60,18 +72,24 @@
         android:orientation="horizontal">
 
         <TextView
+            android:id="@+id/sleep_time_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="@dimen/distance_between"
-            android:text="@string/item_recommendations_mode_desc" />
+            android:text="@string/recent_pool"
+            android:ellipsize="middle"
+            android:maxLines="3"
+            android:singleLine="false" />
 
-        <Spinner
-            android:id="@+id/recommendations_mode"
-            android:layout_width="wrap_content"
+        <SeekBar
+            android:id="@+id/recent_count"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:entries="@array/recommendations_modes" />
+            android:min="50"
+            android:max="500" />
 
     </LinearLayout>
+
 
 </LinearLayout>

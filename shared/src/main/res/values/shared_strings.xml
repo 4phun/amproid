@@ -38,8 +38,9 @@
     <!-- options -->
     <string name="options_preferences">options</string>
     <string name="dot_playlists_hide_preference">hide_dot_playlists</string>
+    <string name="random_count_preference">random_recent_count</string>
     <string name="show_radios_preference">show_radios</string>
-    <string name="recommendations_mode_preference">recommendations_mode</string>
+    <string name="show_shuffle_in_title_preference">show_shuffle_in_title</string>
 
     <!-- accounts -->
     <string name="account_type">com.pppphun.amproid</string>

@@ -25,9 +25,6 @@ package com.pppphun.amproid.service;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_NONE;
 import static com.pppphun.amproid.shared.Amproid.ConnectionStatus.CONNECTION_UNKNOWN;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -84,37 +81,10 @@ public class GetRecommendationsThread extends ThreadCancellable
 
         PlaylistsCache playlistsCache = new PlaylistsCache(authToken, url, null);
 
-        final TypedArray        recommendationsModes = Amproid.getAppContext().getResources().obtainTypedArray(R.array.recommendations_modes);
-        final SharedPreferences preferences          = Amproid.getAppContext().getSharedPreferences(Amproid.getAppContext().getString(R.string.options_preferences), Context.MODE_PRIVATE);
-        String                  forYouModeSetting    = preferences.getString(Amproid.getAppContext().getString(R.string.recommendations_mode_preference), recommendationsModes.getString(0));
-
-        int forYouIndex = 0;
-        for (int i = 0; i < recommendationsModes.length(); i++) {
-            if (forYouModeSetting.compareTo(recommendationsModes.getString(i)) == 0) {
-                forYouIndex = i;
-                break;
-            }
-        }
-
-        recommendationsModes.recycle();
-
-        // default values = Balanced
-        int trackCountFav         = 1;
-        int trackCountRecent      = 0;
+        int trackCountFav         = 2;
+        int trackCountRecent      = 2;
         int trackCountAncient     = 1;
-        int trackCountNeverPlayed = 0;
-        if (forYouIndex == 0) {
-            // Adventurous
-            trackCountFav         = 0;
-            trackCountAncient     = 2;
-            trackCountNeverPlayed = 2;
-        }
-        else if (forYouIndex == 2) {
-            // Disciplined
-            trackCountFav     = 2;
-            trackCountRecent  = 1;
-            trackCountAncient = 0;
-        }
+        int trackCountNeverPlayed = 1;
 
         int trackCountBase = trackCountFav + trackCountRecent + trackCountAncient + trackCountNeverPlayed;
 
@@ -187,35 +157,21 @@ public class GetRecommendationsThread extends ThreadCancellable
             i++;
         }
 
-        if (forYouIndex == 0) {
-            while ((tracks.size() < trackCountBase) && (neverPlayedTracks.size() > 0)) {
-                tracks.add(neverPlayedTracks.elementAt(0));
-                neverPlayedTracks.remove(0);
-            }
-            while ((tracks.size() < trackCountBase) && (ancientTracks.size() > 0)) {
-                tracks.add(ancientTracks.elementAt(0));
-                ancientTracks.remove(0);
-            }
+        while ((tracks.size() < trackCountBase) && (neverPlayedTracks.size() > 0)) {
+            tracks.add(neverPlayedTracks.elementAt(0));
+            neverPlayedTracks.remove(0);
         }
-        else if (forYouIndex == 2) {
-            while ((tracks.size() < trackCountBase) && (favTracks.size() > 0)) {
-                tracks.add(favTracks.elementAt(0));
-                favTracks.remove(0);
-            }
-            while ((tracks.size() < trackCountBase) && (recentTracks.size() > 0)) {
-                tracks.add(recentTracks.elementAt(0));
-                recentTracks.remove(0);
-            }
+        while ((tracks.size() < trackCountBase) && (ancientTracks.size() > 0)) {
+            tracks.add(ancientTracks.elementAt(0));
+            ancientTracks.remove(0);
         }
-        else {
-            while ((tracks.size() < trackCountBase) && (recentTracks.size() > 0)) {
-                tracks.add(recentTracks.elementAt(0));
-                recentTracks.remove(0);
-            }
-            while ((tracks.size() < trackCountBase) && (ancientTracks.size() > 0)) {
-                tracks.add(ancientTracks.elementAt(0));
-                ancientTracks.remove(0);
-            }
+        while ((tracks.size() < trackCountBase) && (recentTracks.size() > 0)) {
+            tracks.add(recentTracks.elementAt(0));
+            recentTracks.remove(0);
+        }
+        while ((tracks.size() < trackCountBase) && (favTracks.size() > 0)) {
+            tracks.add(favTracks.elementAt(0));
+            favTracks.remove(0);
         }
 
         Vector<HashMap<String, String>> cachedPlaylists = playlistsCache.getPlaylists();

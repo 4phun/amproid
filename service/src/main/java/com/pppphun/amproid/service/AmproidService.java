@@ -151,7 +151,6 @@ public class AmproidService extends MediaBrowserServiceCompat
     private       Bundle        searchParameters = null;
     private       String        randomTags       = "";
     private       int           randomCountdown  = 0;
-    private       int           recentSongCount  = 150;
     private       int           sleepSecs        = -99;
 
     private int   mediaSessionUpdateDurationPositionIfPlayingLastDuration = -2;
@@ -159,9 +158,10 @@ public class AmproidService extends MediaBrowserServiceCompat
 
     private final Vector<ThreadCancellable> startedThreads = new Vector<>();
 
-    private PlaylistsCache                  playlistsCache       = null;
-    private RecommendationsCache            recommendationsCache = null;
-    private SearchCache                     searchCache          = null;
+    private PlaylistsCache       playlistsCache       = null;
+    private RecommendationsCache recommendationsCache = null;
+    private SearchCache          searchCache          = null;
+    private RecentAlbumsCache    recentAlbumsCache    = null;
 
     private final Runnable getAuthToken = new Runnable()
     {
@@ -557,10 +557,10 @@ public class AmproidService extends MediaBrowserServiceCompat
 
         if (parentMediaId.compareTo(getString(R.string.item_recent_id)) == 0) {
             result.detach();
-
-            GetRecentAlbumsThread getRecentAlbums = new GetRecentAlbumsThread(authToken, serverUrl, mainHandler, result);
-            startedThreads.add(getRecentAlbums);
-            getRecentAlbums.start();
+            if (recentAlbumsCache != null) {
+                recentAlbumsCache.getRecentlyAdded(result);
+            }
+            return;
         }
 
         if (parentMediaId.compareTo(getString(R.string.item_radios_id)) == 0) {
@@ -696,6 +696,13 @@ public class AmproidService extends MediaBrowserServiceCompat
         if (playlistsCache != null) {
             playlistsCache.refreshPlaylists();
         }
+        if (recentAlbumsCache != null) {
+            recentAlbumsCache.refreshRecentlyAdded();
+        }
+
+        if (mediaPlayer != null) {
+            genuineTrackMessage(mediaPlayer.getTrack());
+        }
 
         mainHandler.postDelayed(new Runnable()
             {
@@ -726,6 +733,11 @@ public class AmproidService extends MediaBrowserServiceCompat
         else if (rootItem.compareTo(getString(R.string.item_playlists_id)) == 0) {
             if (playlistsCache != null) {
                 playlistsCache.refreshPlaylists();
+            }
+        }
+        else if (rootItem.compareTo(getString(R.string.item_recent_id)) == 0) {
+            if (recentAlbumsCache != null) {
+                recentAlbumsCache.refreshRecentlyAdded();
             }
         }
     }
@@ -834,7 +846,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         @SuppressWarnings("unchecked")
         Vector<Track> tracks = (Vector<Track>) data.getSerializable("tracks");
         if ((tracks == null) || tracks.isEmpty()) {
-            if (data.getBoolean("favorites", false)) {
+            if (data.getBoolean("favorites", false) || data.getBoolean("recentlyAdded", false)) {
                 GetTracksThread getTracks = new GetTracksThread(authToken, Amproid.getServerUrl(selectedAccount), PLAY_MODE_RANDOM, "", randomTags, randomCountdown, mainHandler);
                 startedThreads.add(getTracks);
                 getTracks.start();
@@ -852,6 +864,12 @@ public class AmproidService extends MediaBrowserServiceCompat
         if ((playMode == PLAY_MODE_PLAYLIST) || (playMode == PLAY_MODE_GENRE) || (playMode == PLAY_MODE_ARTIST) || (playMode == PLAY_MODE_ALBUM) || (playMode == PLAY_MODE_RANDOM_RECENT)) {
             comingUpTracks.clear();
             comingUpTracks.addAll(tracks);
+
+            if (playMode == PLAY_MODE_RANDOM_RECENT) {
+                for (Track track : comingUpTracks) {
+                    track.setShuffleSource(Track.ShuffleSource.SHUFFLE_SOURCE_RECENTLY_ADDED);
+                }
+            }
 
             if ((comingUpIndex >= 0) && (comingUpIndex < tracks.size())) {
                 trackIndex = comingUpIndex;
@@ -883,6 +901,20 @@ public class AmproidService extends MediaBrowserServiceCompat
         else {
             mediaSession.setQueueTitle("");
             mediaSession.setQueue(null);
+        }
+
+        if (playMode == PLAY_MODE_RANDOM) {
+            for (Track track: tracks) {
+                if (data.getBoolean("favorites", false)) {
+                    track.setShuffleSource(Track.ShuffleSource.SHUFFLE_SOURCE_FAVORIE);
+                }
+                else if (data.getBoolean("recentlyAdded", false)) {
+                    track.setShuffleSource(Track.ShuffleSource.SHUFFLE_SOURCE_RECENTLY_ADDED);
+                }
+                else {
+                    track.setShuffleSource(Track.ShuffleSource.SHUFFLE_SOURCE_SHUFFLE);
+                }
+            }
         }
 
         startTrack(tracks.get(trackIndex));
@@ -933,6 +965,15 @@ public class AmproidService extends MediaBrowserServiceCompat
             searchCache.setAuthToken(authToken);
             if ((newTokenReason == NEW_TOKEN_REASON_CACHE) && (searchParameters == null)) {
                 searchCache.refreshSearch(null);
+            }
+        }
+        if (recentAlbumsCache == null) {
+            recentAlbumsCache = new RecentAlbumsCache(authToken, Amproid.getServerUrl(selectedAccount), mainHandler);
+        }
+        else {
+            recentAlbumsCache.setAuthToken(authToken);
+            if (newTokenReason == NEW_TOKEN_REASON_CACHE) {
+                recentAlbumsCache.refreshRecentlyAdded();
             }
         }
 
@@ -994,7 +1035,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             }
             else if (playMode == PLAY_MODE_RANDOM_RECENT) {
                 fakeTrackMessage(R.string.getting_recent_random, "");
-                ampacheId = String.valueOf(recentSongCount);
+                ampacheId = String.valueOf(Amproid.getRecentSongCount());
                 comingUpIndex = 0;
             }
 
@@ -1158,7 +1199,6 @@ public class AmproidService extends MediaBrowserServiceCompat
         preferencesEditor.putString(getApplicationContext().getString(R.string.play_mode_browse_id_preference), browseId);
         preferencesEditor.putString(getApplicationContext().getString(R.string.play_mode_artist_id_preference), artistId);
         preferencesEditor.putString(getApplicationContext().getString(R.string.play_mode_album_id_preference), albumId);
-        preferencesEditor.putInt(getApplicationContext().getString(R.string.play_mode_random_recent_count_preference), recentSongCount);
 
         preferencesEditor.commit();
     }
@@ -1212,7 +1252,6 @@ public class AmproidService extends MediaBrowserServiceCompat
         browseId        = preferences.getString(getApplicationContext().getString(R.string.play_mode_browse_id_preference), "");
         artistId        = preferences.getString(getApplicationContext().getString(R.string.play_mode_artist_id_preference), "");
         albumId         = preferences.getString(getApplicationContext().getString(R.string.play_mode_album_id_preference), "");
-        recentSongCount = preferences.getInt(getApplicationContext().getString(R.string.play_mode_random_recent_count_preference), 150);
 
         if ((playMode == PLAY_MODE_BROWSE) && browseId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
@@ -1229,9 +1268,7 @@ public class AmproidService extends MediaBrowserServiceCompat
         else if ((playMode == PLAY_MODE_ALBUM) && albumId.isEmpty()) {
             playMode = PLAY_MODE_RANDOM;
         }
-        else if ((playMode == PLAY_MODE_RANDOM_RECENT) && (recentSongCount <= 0)) {
-            recentSongCount = 150;
-        }
+
         if ((playMode < PLAY_MODE_RANDOM) || (playMode > PLAY_MODE_RANDOM_RECENT)) {
             playMode = PLAY_MODE_RANDOM;
         }
@@ -1357,6 +1394,9 @@ public class AmproidService extends MediaBrowserServiceCompat
             else if (asyncType == getResources().getInteger(R.integer.playlists_now_valid)) {
                 notifyChildrenChanged(getString(R.string.item_playlists_id));
             }
+            else if (asyncType == getResources().getInteger(R.integer.recent_albums_now_valid)) {
+                notifyChildrenChanged(getString(R.string.item_recent_id));
+            }
             else if (asyncType == getResources().getInteger(R.integer.async_image_downloader)) {
                 if ((mediaPlayer != null) && (arguments.containsKey("url"))) {
                     boolean equal = false;
@@ -1382,13 +1422,6 @@ public class AmproidService extends MediaBrowserServiceCompat
                     }
                 }
             }
-            else if (asyncType == getResources().getInteger(R.integer.async_get_recent_albums)) {
-                int recentSongCount = arguments.getInt("recentSongCount", 0);
-                if (recentSongCount > 0) {
-                    this.recentSongCount = recentSongCount;
-                }
-            }
-
             return;
         }
 
@@ -1571,7 +1604,7 @@ public class AmproidService extends MediaBrowserServiceCompat
 
                 fakeTrackMessage(R.string.getting_recent_random, "");
 
-                GetTracksThread getTracks = new GetTracksThread(authToken, serverUrl, playMode, String.valueOf(recentSongCount), randomTags, randomCountdown, mainHandler);
+                GetTracksThread getTracks = new GetTracksThread(authToken, serverUrl, playMode, String.valueOf(Amproid.getRecentSongCount()), randomTags, randomCountdown, mainHandler);
                 startedThreads.add(getTracks);
                 getTracks.start();
                 return;

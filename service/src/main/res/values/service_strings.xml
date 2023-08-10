@@ -45,7 +45,6 @@
     <string name="play_mode_browse_id_preference">radio_id</string>
     <string name="play_mode_artist_id_preference">artist_id</string>
     <string name="play_mode_album_id_preference">album_id</string>
-    <string name="play_mode_random_recent_count_preference">random_recent_count</string>
     <string name="playlist_cache_preferences">playlist_cache</string>
 
     <string name="killed_by_os_detection_preferences">killed_by_os_detector</string>

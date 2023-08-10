@@ -101,10 +101,11 @@ public class GetTracksThread extends ThreadCancellable
             return;
         }
 
-        boolean       favorites   = false;
-        Vector<Track> tracks      = new Vector<>();
-        String        queueTitle  = null;
-        boolean       multiBrowse = false;
+        boolean       favorites     = false;
+        boolean       recentlyAdded = false;
+        Vector<Track> tracks        = new Vector<>();
+        String        queueTitle    = null;
+        boolean       multiBrowse   = false;
         if (playMode == PLAY_MODE_RANDOM) {
             if ((randomGenresRemaining > 0) && (randomGenres.length() > 0)) {
                 tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, randomGenres, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_GENRE));
@@ -116,8 +117,16 @@ public class GetTracksThread extends ThreadCancellable
                 }
             }
             else if (randomGenresRemaining < 0) {
-                favorites = true;
-                tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, null, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED));
+                Random randomizer = new Random();
+                if (randomizer.nextInt(100) < 66) {
+                    tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, null, AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_FLAGGED));
+                    favorites = true;
+                }
+                else {
+                    tracks.addAll(ampacheAPICaller.getTracks(authToken, 1, String.valueOf(Amproid.getRecentSongCount()), AmpacheAPICaller.GetTracksIdType.GET_TRACKS_ID_TYPE_RANDOM_RECENTLY_ADDED));
+                    recentlyAdded = true;
+                }
+
                 randomGenresRemaining = 0;
             }
             else {
@@ -208,6 +217,7 @@ public class GetTracksThread extends ThreadCancellable
             arguments.putString("randomGenres", randomGenres);
             arguments.putInt("randomGenresRemaining", randomGenresRemaining);
             arguments.putBoolean("favorites", favorites);
+            arguments.putBoolean("recentlyAdded", recentlyAdded);
         }
         if ((queueTitle != null) && (queueTitle.length() > 0)) {
             arguments.putString("queueTitle", queueTitle);

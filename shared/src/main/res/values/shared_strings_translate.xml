@@ -43,12 +43,6 @@
     <string name="error_no_account_selection">No account selected</string>
     <string name="error_unsupported_api">Ampache API version %1$d not supported, minimum %2$d needed</string>
 
-    <string-array name="recommendations_modes">
-        <item>Adventurous</item>
-        <item>Balanced</item>
-        <item>Disciplined</item>
-    </string-array>
-
     <string-array name="sleep_times">
         <item>Abort</item>
         <item>5 minutes</item>
