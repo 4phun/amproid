@@ -1,3 +1,6 @@
+2.1.5 - 2023-08-19
+    Target API level: 33 (Android 13), Minimum API level: 30 (Android 11)
+
 2.1.4 - 2023-08-10
     Removed "For you mode" option
     New option "New" shuffle pool size
