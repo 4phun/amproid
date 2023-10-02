@@ -1093,12 +1093,16 @@ public class AmpacheAPICaller
             XmlPullParser xmlPullParser = xmlPullParserFactory.newPullParser();
             xmlPullParser.setInput(connection.getInputStream(), null);
 
-            String currentElement   = "";
-            String currentErrorCode = "";
+            String currentElement    = "";
+            String currentErrorCode  = "";
+            String lastDeepName      = "";
+            int    level             = 0;
+            int    repeatingTagLevel = 0;
 
             int xmlState = xmlPullParser.getEventType();
             while (xmlState != XmlPullParser.END_DOCUMENT) {
                 if (xmlState == XmlPullParser.START_TAG) {
+                    level++;
                     currentElement = xmlPullParser.getName();
 
                     String id = "";
@@ -1117,6 +1121,8 @@ public class AmpacheAPICaller
                     }
 
                     if (currentElement.compareTo(repeatingTag) == 0) {
+                        repeatingTagLevel = level;
+
                         subResults = new HashMap<>();
                         results.add(subResults);
 
@@ -1134,32 +1140,52 @@ public class AmpacheAPICaller
                     if (currentElement.compareTo("error") == 0) {
                         currentErrorCode = "";
                     }
+
+                    String endingElement = xmlPullParser.getName();
+                    if (subTags.contains(endingElement) && (subResults != null) && !lastDeepName.isEmpty()) {
+                        if (((endingElement.compareTo("tag") == 0) || (endingElement.compareTo("genre") == 0)) && (subResults.containsKey(endingElement))) {
+                            String tags = subResults.get(endingElement);
+                            tags = tags + (char) 255 + lastDeepName;
+                            subResults.put(endingElement, tags);
+                        } else if (!subResults.containsKey(endingElement)) {
+                            subResults.put(endingElement, lastDeepName);
+                        }
+                        lastDeepName = "";
+                    }
+
                     currentElement = "";
+                    level--;
                 }
                 else if (xmlState == XmlPullParser.TEXT) {
-                    if (subTags.contains(currentElement) && (subResults != null)) {
-                        if (((currentElement.compareTo("tag") == 0) || (currentElement.compareTo("genre") == 0)) && (subResults.containsKey(currentElement))) {
-                            String tags = subResults.get(currentElement);
-                            tags = tags + (char) 255 + xmlPullParser.getText();
-                            subResults.put(currentElement, tags);
-                        }
-                        else {
-                            subResults.put(currentElement, xmlPullParser.getText());
-                        }
-                    }
-                    else if ((currentElement.compareTo("error") == 0) || (currentElement.compareTo("errorMessage") == 0)) {
-                        String errorText = "";
-                        try {
-                            errorText = xmlPullParser.getText().trim();
-                        }
-                        catch (Exception ignored) {
-                        }
-                        if (errorText.length() > 0) {
-                            // do not error on "not found", an empty set will be returned
-                            if ((currentErrorCode.compareTo("4704") != 0) && (currentErrorCode.compareTo("404") != 0)) {
-                                errorMessage = errorText;
-                                break;
+                    String text = xmlPullParser.getText();
+
+                    if (!text.trim().isEmpty()) {
+                        if ((currentElement.compareTo("error") == 0) || (currentElement.compareTo("errorMessage") == 0)) {
+                            String errorText = "";
+                            try {
+                                errorText = text.trim();
                             }
+                            catch (Exception ignored) {
+                            }
+                            if (errorText.length() > 0) {
+                                // do not error on "not found", an empty set will be returned
+                                if ((currentErrorCode.compareTo("4704") != 0) && (currentErrorCode.compareTo("404") != 0)) {
+                                    errorMessage = errorText;
+                                    break;
+                                }
+                            }
+                        }
+                        if ((level <= repeatingTagLevel + 1) && subTags.contains(currentElement) && (subResults != null)) {
+                            if (((currentElement.compareTo("tag") == 0) || (currentElement.compareTo("genre") == 0)) && (subResults.containsKey(currentElement))) {
+                                String tags = subResults.get(currentElement);
+                                tags = tags + (char) 255 + text;
+                                subResults.put(currentElement, tags);
+                            } else {
+                                subResults.put(currentElement, text);
+                            }
+                        }
+                        if ((level > repeatingTagLevel + 1) && (currentElement.compareTo("name") == 0)) {
+                            lastDeepName = text;
                         }
                     }
                 }

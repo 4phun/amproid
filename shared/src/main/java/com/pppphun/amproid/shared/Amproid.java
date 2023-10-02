@@ -32,11 +32,9 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.DisplayMetrics;
 import android.view.WindowMetrics;
 
 import org.jetbrains.annotations.NotNull;
@@ -223,21 +221,11 @@ public class Amproid extends Application
     public static int screenSize(Activity activity, ScreenSizeDimension screenSizeDimension)
     {
         try {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
-                if (screenSizeDimension == ScreenSizeDimension.SCREEN_SIZE_WIDTH) {
-                    return windowMetrics.getBounds().width();
-                }
-                return windowMetrics.getBounds().height();
+            WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
+            if (screenSizeDimension == ScreenSizeDimension.SCREEN_SIZE_WIDTH) {
+                return windowMetrics.getBounds().width();
             }
-            else {
-                DisplayMetrics displayMetrics = new DisplayMetrics();
-                activity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-                if (screenSizeDimension == ScreenSizeDimension.SCREEN_SIZE_WIDTH) {
-                    return displayMetrics.widthPixels;
-                }
-                return displayMetrics.heightPixels;
-            }
+            return windowMetrics.getBounds().height();
         }
         catch (Exception ignored) {
         }
