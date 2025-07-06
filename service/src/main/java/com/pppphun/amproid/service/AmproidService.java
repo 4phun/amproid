@@ -1137,7 +1137,7 @@ public class AmproidService extends MediaBrowserServiceCompat
             return;
         }
 
-        String title = track.getTitle();
+        String title = track.getTitle(true);
         if ((playMode == PLAY_MODE_PLAYLIST) || (playMode == PLAY_MODE_GENRE) || (playMode == PLAY_MODE_ARTIST) || (playMode == PLAY_MODE_ALBUM) || (playMode == PLAY_MODE_RANDOM_RECENT)) {
             title = String.format(Locale.US, "%d/%d: %s", comingUpIndex + 1, comingUpTracks.size(), title);
         }

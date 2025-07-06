@@ -46,12 +46,13 @@ import java.util.Vector;
 
 public class Amproid extends Application
 {
-    public static final int     NETWORK_CONNECT_TIMEOUT       = 25000;
-    public static final int     NETWORK_READ_TIMEOUT          = 90000;
-    public static final int     NEW_TOKEN_REASON_NONE         = 0;
-    public static final int     NEW_TOKEN_REASON_CACHE        = 1;
-    public static final int     DEFAULT_RECENT_SONG_COUNT     = 150;
-    public static final boolean DEFAULT_SHOW_SHUFFLE_IN_TITLE = false;
+    public static final int     NETWORK_CONNECT_TIMEOUT         = 25000;
+    public static final int     NETWORK_READ_TIMEOUT            = 90000;
+    public static final int     NEW_TOKEN_REASON_NONE           = 0;
+    public static final int     NEW_TOKEN_REASON_CACHE          = 1;
+    public static final int     DEFAULT_RECENT_SONG_COUNT       = 150;
+    public static final boolean DEFAULT_SHOW_SHUFFLE_IN_TITLE   = false;
+    public static final boolean DEFAULT_CURLY_IN_TITLE_IS_EXTRA = true;
 
     public enum ScreenSizeDimension
     {

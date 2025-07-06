@@ -63,6 +63,18 @@
         android:singleLine="false"
         android:text="@string/show_shuffle" />
 
+    <CheckBox
+        android:id="@+id/title_curly_is_extra"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/distance_from_edge"
+        android:layout_marginTop="@dimen/distance_between"
+        android:layout_marginEnd="@dimen/distance_from_edge"
+        android:ellipsize="middle"
+        android:maxLines="3"
+        android:singleLine="false"
+        android:text="@string/title_curly" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

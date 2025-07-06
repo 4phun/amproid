@@ -41,11 +41,13 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.icu.text.SimpleDateFormat;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -61,6 +63,7 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -71,11 +74,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -95,6 +100,8 @@ import java.util.Vector;
 
 public class AmproidMainActivity extends AppCompatActivity
 {
+    private static final int TABS_DISTANCE = 150;
+
     private MediaBrowserCompat mediaBrowser     = null;
     private String             lastSubscription = "";
 
@@ -345,6 +352,9 @@ public class AmproidMainActivity extends AppCompatActivity
         final CheckBox showShuffleInTitle = view.findViewById(R.id.show_shuffle_in_title);
         showShuffleInTitle.setChecked(preferences.getBoolean(getString(R.string.show_shuffle_in_title_preference), Amproid.DEFAULT_SHOW_SHUFFLE_IN_TITLE));
 
+        final CheckBox titleCurlyIsExtra = view.findViewById(R.id.title_curly_is_extra);
+        titleCurlyIsExtra.setChecked(preferences.getBoolean(getString(R.string.title_curly_is_extra_preference), Amproid.DEFAULT_CURLY_IN_TITLE_IS_EXTRA));
+
         final TextView sleepTimeLabel = view.findViewById(R.id.sleep_time_label);
         sleepTimeLabel.setTextColor(showRadios.getCurrentTextColor());
 
@@ -368,6 +378,7 @@ public class AmproidMainActivity extends AppCompatActivity
                 preferencesEditor.putBoolean(getString(R.string.dot_playlists_hide_preference), hideDotPlaylists.isChecked());
                 preferencesEditor.putBoolean(getString(R.string.show_radios_preference), showRadios.isChecked());
                 preferencesEditor.putBoolean(getString(R.string.show_shuffle_in_title_preference), showShuffleInTitle.isChecked());
+                preferencesEditor.putBoolean(getString(R.string.title_curly_is_extra_preference), titleCurlyIsExtra.isChecked());
                 preferencesEditor.putInt(getString(R.string.random_count_preference), recentCount.getProgress());
                 preferencesEditor.commit();
 
@@ -503,6 +514,39 @@ public class AmproidMainActivity extends AppCompatActivity
             if (nowPlayingTab != null) {
                 nowPlayingTab.setTag(getString(R.string.fragment_tag_now_playing));
             }
+        }
+
+        // on newer Android versions the ActionBar sometimes covers the TabLayout, completely or partially, depending on device
+        // this is a dirty quick-fix, once API level 34 (Android 14) is not supported anymore, the AppCompatActivity base class should not be used anymore
+        RelativeLayout mainRoot = findViewById(R.id.main_root);
+        if (mainRoot != null) {
+            ViewTreeObserver vto = mainRoot.getViewTreeObserver();
+            vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    if (Build.VERSION.SDK_INT < 35) {
+                        mainRoot.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        return;
+                    }
+
+                    TabLayout tabs = findViewById(R.id.tabs);
+                    ActionBar ab   = getSupportActionBar();
+                    if ((tabs != null) && (ab != null)) {
+                        Rect tabsVisibleRect = new Rect();
+                        tabs.getGlobalVisibleRect(tabsVisibleRect);
+
+                        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) tabs.getLayoutParams();
+
+                        int marginNeeded = TABS_DISTANCE - (tabsVisibleRect.bottom - (ab.getHeight() + tabs.getHeight()));
+                        if (layoutParams.topMargin < marginNeeded) {
+                            layoutParams.topMargin = marginNeeded;
+                            tabs.setLayoutParams(layoutParams);
+                        }
+
+                        mainRoot.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    }
+                }
+            });
         }
 
         iconsCache = new LruCache<Uri, Bitmap>(Math.min((int) (Runtime.getRuntime().maxMemory() / 1024 / 10), 64 * 1024))

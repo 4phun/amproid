@@ -41,6 +41,7 @@
     <string name="random_count_preference">random_recent_count</string>
     <string name="show_radios_preference">show_radios</string>
     <string name="show_shuffle_in_title_preference">show_shuffle_in_title</string>
+    <string name="title_curly_is_extra_preference">title_curly_is_extra</string>
 
     <!-- accounts -->
     <string name="account_type">com.pppphun.amproid</string>

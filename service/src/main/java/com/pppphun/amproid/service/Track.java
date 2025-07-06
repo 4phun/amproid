@@ -172,18 +172,33 @@ public class Track
 
     public String getTitle()
     {
+        return getTitle(false);
+    }
+
+    public String getTitle(boolean checkExtra)
+    {
         String title = this.title;
 
         SharedPreferences preferences = Amproid.getAppContext().getSharedPreferences(Amproid.getAppContext().getString(R.string.options_preferences), Context.MODE_PRIVATE);
         if (preferences.getBoolean(Amproid.getAppContext().getString(R.string.show_shuffle_in_title_preference), Amproid.DEFAULT_SHOW_SHUFFLE_IN_TITLE)) {
             if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_FAVORIE) {
-                title = "\uD83D\uDC9F " +title;
+                // title = "\uD83D\uDC9F " +title;
+                title = "\u2606 " + title;
             }
             else if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_RECENTLY_ADDED) {
-                title = "\uD83C\uDD95 " + title;
+                // title = "\uD83C\uDD95 " + title;
+                title = "\uD83C\uDD3D " + title;
             }
             else if (shuffleSource == ShuffleSource.SHUFFLE_SOURCE_SHUFFLE) {
-                title = "\uD83D\uDD00 " + title;
+                // title = "\uD83D\uDD00 " + title;
+                title = "\u2387 " + title;
+            }
+        }
+
+        if (checkExtra && preferences.getBoolean(Amproid.getAppContext().getString(R.string.title_curly_is_extra_preference), Amproid.DEFAULT_CURLY_IN_TITLE_IS_EXTRA)) {
+            int curly = title.indexOf('{');
+            if (curly >= 0) {
+                title = title.substring(0, curly).trim();
             }
         }
 
